@@ -66,7 +66,7 @@
     "cookie-parser": "1.4.6",
     "cookie-session": "2.0.0",
     "ejs": "3.1.8",
-    "eslint": "7.32.0",
+    "prettier": "^2.7.1",
     "express-session": "1.17.2",
     "hbs": "4.2.0",
     "marked": "0.7.0",
@@ -90,10 +90,10 @@
     "lib/"
   ],
   "scripts": {
-    "lint": "eslint .",
+    "lint": "prettier -w .",
     "test": "mocha --require test/support/env --reporter spec --bail --check-leaks test/ test/acceptance/",
-    "test-ci": "nyc --reporter=lcovonly --reporter=text npm test",
-    "test-cov": "nyc --reporter=html --reporter=text npm test",
+    "test-ci": "nyc --reporter=lcovonly --reporter=text pnpm test",
+    "test-cov": "nyc --reporter=html --reporter=text pnpm test",
     "test-tap": "mocha --require test/support/env --reporter tap --check-leaks test/ test/acceptance/"
   }
 }
