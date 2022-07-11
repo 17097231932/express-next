@@ -1,10 +1,9 @@
-
 /**
  * Module dependencies.
  * @private
  */
 
-var assert = require('assert');
+var assert = require('assert')
 var Buffer = require('safe-buffer').Buffer
 
 /**
@@ -15,7 +14,7 @@ var Buffer = require('safe-buffer').Buffer
 exports.shouldHaveBody = shouldHaveBody
 exports.shouldHaveHeader = shouldHaveHeader
 exports.shouldNotHaveBody = shouldNotHaveBody
-exports.shouldNotHaveHeader = shouldNotHaveHeader;
+exports.shouldNotHaveHeader = shouldNotHaveHeader
 
 /**
  * Assert that a supertest response has a specific body.
@@ -24,14 +23,14 @@ exports.shouldNotHaveHeader = shouldNotHaveHeader;
  * @returns {function}
  */
 
-function shouldHaveBody (buf) {
-  return function (res) {
-    var body = !Buffer.isBuffer(res.body)
-      ? Buffer.from(res.text)
-      : res.body
-    assert.ok(body, 'response has body')
-    assert.strictEqual(body.toString('hex'), buf.toString('hex'))
-  }
+function shouldHaveBody(buf) {
+    return function (res) {
+        var body = !Buffer.isBuffer(res.body)
+            ? Buffer.from(res.text)
+            : res.body
+        assert.ok(body, 'response has body')
+        assert.strictEqual(body.toString('hex'), buf.toString('hex'))
+    }
 }
 
 /**
@@ -41,10 +40,13 @@ function shouldHaveBody (buf) {
  * @returns {function}
  */
 
-function shouldHaveHeader (header) {
-  return function (res) {
-    assert.ok((header.toLowerCase() in res.headers), 'should have header ' + header)
-  }
+function shouldHaveHeader(header) {
+    return function (res) {
+        assert.ok(
+            header.toLowerCase() in res.headers,
+            'should have header ' + header
+        )
+    }
 }
 
 /**
@@ -53,10 +55,10 @@ function shouldHaveHeader (header) {
  * @returns {function}
  */
 
-function shouldNotHaveBody () {
-  return function (res) {
-    assert.ok(res.text === '' || res.text === undefined)
-  }
+function shouldNotHaveBody() {
+    return function (res) {
+        assert.ok(res.text === '' || res.text === undefined)
+    }
 }
 
 /**
@@ -66,7 +68,10 @@ function shouldNotHaveBody () {
  * @returns {function}
  */
 function shouldNotHaveHeader(header) {
-  return function (res) {
-    assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header);
-  };
+    return function (res) {
+        assert.ok(
+            !(header.toLowerCase() in res.headers),
+            'should not have header ' + header
+        )
+    }
 }
