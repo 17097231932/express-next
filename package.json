@@ -14,7 +14,6 @@
         "cookie-signature": "^1.2.0",
         "debug": "^4.3.4",
         "depd": "^2.0.0",
-        "encodeurl": "^1.0.2",
         "escape-html": "^1.0.3",
         "etag": "^1.8.1",
         "finalhandler": "^1.2.0",
@@ -31,10 +30,8 @@
         "safe-buffer": "^5.2.1",
         "send": "^0.18.0",
         "serve-static": "^1.15.0",
-        "setprototypeof": "^1.2.0",
         "statuses": "^2.0.1",
         "type-is": "^1.6.18",
-        "utils-merge": "^1.0.1",
         "vary": "^1.1.2"
     },
     "devDependencies": {

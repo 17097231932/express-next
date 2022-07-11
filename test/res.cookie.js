@@ -1,9 +1,8 @@
 'use strict'
 
-var express = require('../'),
-    request = require('supertest'),
-    cookieParser = require('cookie-parser')
-var merge = require('utils-merge')
+var express = require('../')
+var request = require('supertest')
+var cookieParser = require('cookie-parser')
 
 describe('res', function () {
     describe('.cookie(name, object)', function () {
@@ -123,7 +122,7 @@ describe('res', function () {
                 var app = express()
 
                 var options = { maxAge: 1000 }
-                var optionsCopy = merge({}, options)
+                var optionsCopy = Object.assign({}, options)
 
                 app.use(function (req, res) {
                     res.cookie('name', 'tobi', options)
