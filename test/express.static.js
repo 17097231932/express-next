@@ -123,7 +123,6 @@ describe('express.static()', function () {
             request(this.app).get('/.name').expect(404, 'Not Found', done)
         })
     })
-
     ;(skipRelative ? describe.skip : describe)('current dir', function () {
         before(function () {
             this.app = createApp('.')
