@@ -1,5 +1,3 @@
-'use strict'
-
 var express = require('../'),
     request = require('supertest'),
     cookieParser = require('cookie-parser')

@@ -1,5 +1,3 @@
-'use strict'
-
 // install redis first:
 // https://redis.io/
 

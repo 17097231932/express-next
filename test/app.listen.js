@@ -1,5 +1,3 @@
-'use strict'
-
 var express = require('../')
 
 describe('app.listen()', function () {

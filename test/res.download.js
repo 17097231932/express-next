@@ -1,5 +1,3 @@
-'use strict'
-
 var after = require('after')
 var assert = require('assert')
 var asyncHooks = tryRequire('async_hooks')

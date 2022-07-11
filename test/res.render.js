@@ -1,5 +1,3 @@
-'use strict'
-
 var express = require('..')
 var path = require('path')
 var request = require('supertest')

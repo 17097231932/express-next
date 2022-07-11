@@ -1,5 +1,3 @@
-'use strict'
-
 var assert = require('assert')
 var express = require('../'),
     request = require('supertest')

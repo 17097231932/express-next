@@ -1,5 +1,3 @@
-'use strict'
-
 var after = require('after')
 var express = require('../'),
     Router = express.Router,

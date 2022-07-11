@@ -1,5 +1,3 @@
-'use strict'
-
 var users = []
 
 users.push({ name: 'Tobi' })

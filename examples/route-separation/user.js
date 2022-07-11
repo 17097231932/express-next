@@ -1,5 +1,3 @@
-'use strict'
-
 // Fake user database
 
 var users = [
