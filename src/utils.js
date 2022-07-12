@@ -1,10 +1,10 @@
-import { Buffer } from 'safe-buffer'
 import contentType from 'content-type'
-import { mime } from 'send'
 import generateETag from 'etag'
 import proxyaddr from 'proxy-addr'
 import qs from 'qs'
 import querystring from 'querystring'
+import { Buffer } from 'safe-buffer'
+import { mime } from 'send'
 
 /**
  * Return strong ETag for `body`.

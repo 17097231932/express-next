@@ -1,8 +1,6 @@
 import { EventEmitter } from 'events'
 import mixin from 'merge-descriptors'
 import application from './application'
-import Route from './router/route'
-import Router from './router'
 import request from './request'
 import response from './response'
 
@@ -45,18 +43,9 @@ export default function createApplication() {
     return app
 }
 
-import { json, raw, text, urlencoded } from 'body-parser'
-import query from './middleware/query'
-import serveStatic from 'serve-static'
-
-createApplication.application = application
-createApplication.request = request
-createApplication.response = response
-createApplication.Route = Route
-createApplication.Router = Router
-createApplication.json = json
-createApplication.raw = raw
-createApplication.text = text
-createApplication.urlencoded = urlencoded
-createApplication.query = query
-createApplication['static'] = serveStatic
+export { json, raw, text, urlencoded } from 'body-parser'
+export { default as static } from 'serve-static'
+export { default as query } from './middleware/query'
+export { default as Router } from './router'
+export { default as Route } from './router/route'
+export { application, request, response }

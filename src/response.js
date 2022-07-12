@@ -1,17 +1,17 @@
-import { Buffer } from 'safe-buffer'
 import contentDisposition from 'content-disposition'
-import createError from 'http-errors'
+import { serialize } from 'cookie'
+import { sign } from 'cookie-signature'
 import depd from 'depd'
 import escapeHtml from 'escape-html'
 import { ServerResponse } from 'http'
-import { isAbsolute, normalizeType, normalizeTypes, setCharset } from './utils'
+import createError from 'http-errors'
 import onFinished from 'on-finished'
 import { extname, resolve } from 'path'
-import { message } from 'statuses'
-import { sign } from 'cookie-signature'
-import { serialize } from 'cookie'
+import { Buffer } from 'safe-buffer'
 import send, { mime } from 'send'
+import { message } from 'statuses'
 import vary from 'vary'
+import { isAbsolute, normalizeType, normalizeTypes, setCharset } from './utils'
 
 var deprecate = depd('express')
 

@@ -1,7 +1,7 @@
-import getLogger from 'debug'
 import { flatten } from 'array-flatten'
-import Layer from './layer'
+import getLogger from 'debug'
 import methods from 'methods'
+import Layer from './layer'
 
 const debug = getLogger('express:router:route')
 

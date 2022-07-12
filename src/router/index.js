@@ -1,10 +1,10 @@
-import Route from './route'
-import Layer from './layer'
-import methods from 'methods'
+import { flatten } from 'array-flatten'
 import getLogger from 'debug'
 import depd from 'depd'
-import { flatten } from 'array-flatten'
+import methods from 'methods'
 import parseUrl from 'parseurl'
+import Layer from './layer'
+import Route from './route'
 
 var debug = getLogger('express:router')
 var deprecate = depd('express')

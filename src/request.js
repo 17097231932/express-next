@@ -1,12 +1,12 @@
 import accepts from 'accepts'
 import depd from 'depd'
-import { isIP } from 'net'
-import typeis from 'type-is'
-import { IncomingMessage } from 'http'
 import fresh from 'fresh'
-import parseRange from 'range-parser'
+import { IncomingMessage } from 'http'
+import { isIP } from 'net'
 import parse from 'parseurl'
 import proxyaddr, { all } from 'proxy-addr'
+import parseRange from 'range-parser'
+import typeis from 'type-is'
 
 var deprecate = depd('express')
 

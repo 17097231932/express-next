@@ -1,7 +1,8 @@
 import getLogger from 'debug'
-import { dirname, basename, extname, join, resolve } from 'path'
 import { statSync } from 'fs'
 import { createRequire } from 'module'
+import { basename, dirname, extname, join, resolve } from 'path'
+import { URL } from 'url'
 
 var debug = getLogger('express:view')
 
@@ -67,7 +68,7 @@ export default class View {
             debug('require "%s"', mod)
 
             // default engine export
-            var fn = createRequire(__filename)(mod).__express
+            var fn = createRequire(new URL(import.meta.url))(mod).__express
 
             if (typeof fn !== 'function') {
                 throw new Error(

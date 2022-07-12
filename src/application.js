@@ -1,15 +1,15 @@
+import { flatten } from 'array-flatten'
+import getLogger from 'debug'
+import depd from 'depd'
 import finalhandler from 'finalhandler'
-import Router from './router'
+import http from 'http'
 import methods from 'methods'
+import { resolve } from 'path'
 import { init } from './middleware/init'
 import query from './middleware/query'
-import getLogger from 'debug'
-import View from './view'
-import http from 'http'
+import Router from './router'
 import { compileETag, compileQueryParser, compileTrust } from './utils'
-import depd from 'depd'
-import { flatten } from 'array-flatten'
-import { resolve } from 'path'
+import View from './view'
 
 const debug = getLogger('express:application')
 const deprecate = depd('express')
