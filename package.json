@@ -35,12 +35,16 @@
         "vary": "^1.1.2"
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^22.0.1",
+        "@rollup/plugin-json": "^4.1.0",
+        "@rollup/plugin-node-resolve": "^13.3.0",
         "after": "^0.8.2",
         "cookie-parser": "^1.4.6",
         "ejs": "^3.1.8",
         "hbs": "^4.2.0",
         "mocha": "^10.0.0",
         "prettier": "^2.7.1",
+        "rollup": "^2.76.0",
         "supertest": "^6.2.4"
     },
     "scripts": {
