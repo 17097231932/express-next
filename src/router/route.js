@@ -1,6 +1,4 @@
-import { flatten } from 'array-flatten'
-import getLogger from 'debug'
-import methods from 'methods'
+import { getLogger, methods } from '../utils'
 import Layer from './layer'
 
 const debug = getLogger('express:router:route')
@@ -145,11 +143,10 @@ export default class Route {
      *
      * @param {function} handler
      * @return {Route} for chaining
-     * @api public
      */
 
     all() {
-        var handles = flatten(slice.call(arguments))
+        var handles = slice.call(arguments).flat(Infinity)
 
         for (var i = 0; i < handles.length; i++) {
             var handle = handles[i]
@@ -175,7 +172,7 @@ export default class Route {
 
 methods.forEach(function (method) {
     Route.prototype[method] = function () {
-        var handles = flatten(slice.call(arguments))
+        var handles = slice.call(arguments).flat(Infinity)
 
         for (var i = 0; i < handles.length; i++) {
             var handle = handles[i]

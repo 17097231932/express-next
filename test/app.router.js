@@ -2,7 +2,7 @@ var after = require('after')
 var express = require('../'),
     request = require('supertest'),
     assert = require('assert'),
-    methods = require('methods')
+    methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 
 describe('app.router', function () {
     it('should restore req.params after leaving router', function (done) {

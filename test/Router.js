@@ -1,7 +1,7 @@
 var after = require('after')
 var express = require('../'),
     Router = express.Router,
-    methods = require('methods'),
+    methods = ['get', 'post', 'put', 'head', 'delete', 'options'],
     assert = require('assert')
 
 describe('Router', function () {

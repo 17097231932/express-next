@@ -1,10 +1,10 @@
-import getLogger from 'debug'
 import { statSync } from 'fs'
 import { createRequire } from 'module'
 import { basename, dirname, extname, join, resolve } from 'path'
 import { URL } from 'url'
+import { getLogger } from './utils'
 
-var debug = getLogger('express:view')
+let debug = getLogger('express:view')
 
 /**
  * Return a stat, maybe.
@@ -37,7 +37,7 @@ export default class View {
      * @param {object} options
      */
     constructor(name, options) {
-        var opts = options || {}
+        const opts = options || {}
 
         this.defaultEngine = opts.defaultEngine
         this.ext = extname(name)
@@ -50,7 +50,7 @@ export default class View {
             )
         }
 
-        var fileName = name
+        let fileName = name
 
         if (!this.ext) {
             // get extension from default engine name
@@ -64,11 +64,11 @@ export default class View {
 
         if (!opts.engines[this.ext]) {
             // load engine
-            var mod = this.ext.slice(1)
+            const mod = this.ext.slice(1)
             debug('require "%s"', mod)
 
             // default engine export
-            var fn = createRequire(new URL(import.meta.url))(mod).__express
+            const fn = createRequire(new URL(import.meta.url))(mod).__express
 
             if (typeof fn !== 'function') {
                 throw new Error(
@@ -92,24 +92,25 @@ export default class View {
      * @param {string} name
      */
     lookup(name) {
-        var path
-        var roots = [].concat(this.root)
+        let path
+        const roots = [].concat(this.root)
 
         debug('lookup "%s"', name)
 
-        for (var i = 0; i < roots.length && !path; i++) {
-            var root = roots[i]
-
+        roots.find(root => {
             // resolve the path
-            var loc = resolve(root, name)
-            var dir = dirname(loc)
-            var file = basename(loc)
+            const loc = resolve(root, name)
+            const dir = dirname(loc)
+            const file = basename(loc)
 
             // resolve the file
             path = this.resolve(dir, file)
-        }
+            return !!path
+        })
 
-        return path
+        if (path) {
+            return path
+        }
     }
 
     /**
@@ -132,11 +133,11 @@ export default class View {
      */
 
     resolve(dir, file) {
-        var ext = this.ext
+        const ext = this.ext
 
         // <path>.<ext>
-        var path = join(dir, file)
-        var stat = tryStat(path)
+        let path = join(dir, file)
+        let stat = tryStat(path)
 
         if (stat && stat.isFile()) {
             return path

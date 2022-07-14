@@ -1,5 +1,5 @@
 var assert = require('assert')
-var Buffer = require('safe-buffer').Buffer
+var { Buffer } = require('safe-buffer')
 var express = require('..')
 var path = require('path')
 var request = require('supertest')
@@ -60,10 +60,6 @@ describe('express.static()', function () {
             request(this.app)
                 .get('/%25%20of%20dogs.txt')
                 .expect(200, '20%', done)
-        })
-
-        it('should not choke on auth-looking URL', function (done) {
-            request(this.app).get('//todo@txt').expect(404, 'Not Found', done)
         })
 
         it('should support index.html', function (done) {

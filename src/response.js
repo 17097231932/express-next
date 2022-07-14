@@ -1,7 +1,6 @@
 import contentDisposition from 'content-disposition'
 import { serialize } from 'cookie'
 import { sign } from 'cookie-signature'
-import depd from 'depd'
 import escapeHtml from 'escape-html'
 import { ServerResponse } from 'http'
 import createError from 'http-errors'
@@ -11,23 +10,21 @@ import { Buffer } from 'safe-buffer'
 import send, { mime } from 'send'
 import { message } from 'statuses'
 import vary from 'vary'
-import { isAbsolute, normalizeType, normalizeTypes, setCharset } from './utils'
-
-var deprecate = depd('express')
+import {
+    deprecate,
+    isAbsolute,
+    normalizeType,
+    normalizeTypes,
+    setCharset,
+} from './utils'
 
 /**
  * Response prototype.
- * @public
  */
 
 var res = Object.create(ServerResponse.prototype)
 
 export default res
-
-/**
- * Module variables.
- * @private
- */
 
 var charsetRegExp = /;\s*charset\s*=/
 
@@ -36,7 +33,6 @@ var charsetRegExp = /;\s*charset\s*=/
  *
  * @param {Number} code
  * @return {ServerResponse}
- * @public
  */
 
 res.status = function status(code) {
@@ -69,7 +65,6 @@ res.status = function status(code) {
  *
  * @param {Object} links
  * @return {ServerResponse}
- * @public
  */
 
 res.links = function (links) {
@@ -96,7 +91,6 @@ res.links = function (links) {
  *     res.send('<p>some html</p>');
  *
  * @param {string|number|boolean|object|Buffer} body
- * @public
  */
 
 res.send = function send(body) {
@@ -234,6 +228,44 @@ res.send = function send(body) {
 }
 
 /**
+ * Stringify JSON, like JSON.stringify, but v8 optimized, with the
+ * ability to escape characters that can trigger HTML sniffing.
+ *
+ * @param {*} value
+ * @param {function} replacer
+ * @param {number} spaces
+ * @param {boolean} escape
+ * @returns {string}
+ */
+
+function stringify(value, replacer, spaces, escape) {
+    // v8 checks arguments.length for optimizing simple call
+    // https://bugs.chromium.org/p/v8/issues/detail?id=4730
+    var json =
+        replacer || spaces
+            ? JSON.stringify(value, replacer, spaces)
+            : JSON.stringify(value)
+
+    if (escape && typeof json === 'string') {
+        json = json.replace(/[<>&]/g, function (c) {
+            switch (c.charCodeAt(0)) {
+                case 0x3c:
+                    return '\\u003c'
+                case 0x3e:
+                    return '\\u003e'
+                case 0x26:
+                    return '\\u0026'
+                /* istanbul ignore next: unreachable default */
+                default:
+                    return c
+            }
+        })
+    }
+
+    return json
+}
+
+/**
  * Send JSON response.
  *
  * Examples:
@@ -242,7 +274,6 @@ res.send = function send(body) {
  *     res.json({ user: 'tj' });
  *
  * @param {string|number|boolean|object} obj
- * @public
  */
 
 res.json = function json(obj) {
@@ -289,7 +320,6 @@ res.json = function json(obj) {
  *     res.jsonp({ user: 'tj' });
  *
  * @param {string|number|boolean|object} obj
- * @public
  */
 
 res.jsonp = function jsonp(obj) {
@@ -376,7 +406,6 @@ res.jsonp = function jsonp(obj) {
  *     res.sendStatus(200);
  *
  * @param {number} statusCode
- * @public
  */
 
 res.sendStatus = function sendStatus(statusCode) {
@@ -386,6 +415,97 @@ res.sendStatus = function sendStatus(statusCode) {
     this.type('txt')
 
     return this.send(body)
+}
+
+// pipe the send file stream
+function sendfile(res, file, options, callback) {
+    var done = false
+    var streaming
+
+    // request aborted
+    function onaborted() {
+        if (done) return
+        done = true
+
+        var err = new Error('Request aborted')
+        err.code = 'ECONNABORTED'
+        callback(err)
+    }
+
+    // directory
+    function ondirectory() {
+        if (done) return
+        done = true
+
+        var err = new Error('EISDIR, read')
+        err.code = 'EISDIR'
+        callback(err)
+    }
+
+    // errors
+    function onerror(err) {
+        if (done) return
+        done = true
+        callback(err)
+    }
+
+    // ended
+    function onend() {
+        if (done) return
+        done = true
+        callback()
+    }
+
+    // file
+    function onfile() {
+        streaming = false
+    }
+
+    // finished
+    function onfinish(err) {
+        if (err && err.code === 'ECONNRESET') return onaborted()
+        if (err) return onerror(err)
+        if (done) return
+
+        setImmediate(function () {
+            if (streaming !== false && !done) {
+                onaborted()
+                return
+            }
+
+            if (done) return
+            done = true
+            callback()
+        })
+    }
+
+    // streaming
+    function onstream() {
+        streaming = true
+    }
+
+    file.on('directory', ondirectory)
+    file.on('end', onend)
+    file.on('error', onerror)
+    file.on('file', onfile)
+    file.on('stream', onstream)
+    onFinished(res, onfinish)
+
+    if (options.headers) {
+        // set headers on successful transfer
+        file.on('headers', function headers(res) {
+            var obj = options.headers
+            var keys = Object.keys(obj)
+
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i]
+                res.setHeader(k, obj[k])
+            }
+        })
+    }
+
+    // pipe
+    file.pipe(res)
 }
 
 /**
@@ -426,7 +546,6 @@ res.sendStatus = function sendStatus(statusCode) {
  *       });
  *     });
  *
- * @public
  */
 
 res.sendFile = function sendFile(path, options, callback) {
@@ -554,7 +673,6 @@ res.sendfile = deprecate.function(function (path, options, callback) {
  *
  * This method uses `res.sendFile()`.
  *
- * @public
  */
 
 res.download = function download(path, filename, options, callback) {
@@ -622,7 +740,6 @@ res.download = function download(path, filename, options, callback) {
  *
  * @param {String} type
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.contentType = res.type = function contentType(type) {
@@ -685,7 +802,6 @@ res.contentType = res.type = function contentType(type) {
  *
  * @param {Object} obj
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.format = function (obj) {
@@ -723,7 +839,6 @@ res.format = function (obj) {
  *
  * @param {String} filename
  * @return {ServerResponse}
- * @public
  */
 
 res.attachment = function attachment(filename) {
@@ -748,7 +863,6 @@ res.attachment = function attachment(filename) {
  * @param {String} field
  * @param {String|Array} val
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.append = function append(field, val) {
@@ -782,7 +896,6 @@ res.append = function append(field, val) {
  * @param {String|Object} field
  * @param {String|Array} val
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.set = res.header = function header(field, val) {
@@ -814,7 +927,6 @@ res.set = res.header = function header(field, val) {
  *
  * @param {String} field
  * @return {String}
- * @public
  */
 
 res.get = function (field) {
@@ -827,7 +939,6 @@ res.get = function (field) {
  * @param {String} name
  * @param {Object} [options]
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.clearCookie = function clearCookie(name, options) {
@@ -857,7 +968,6 @@ res.clearCookie = function clearCookie(name, options) {
  * @param {String|Object} value
  * @param {Object} [options]
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.cookie = function (name, value, options) {
@@ -910,7 +1020,6 @@ res.cookie = function (name, value, options) {
  *
  * @param {String} url
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.location = function location(url) {
@@ -969,7 +1078,6 @@ res.location = function location(url) {
  *    res.redirect(301, 'http://example.com');
  *    res.redirect('../login'); // /blog/post/1 -> /blog/login
  *
- * @public
  */
 
 res.redirect = function redirect(url) {
@@ -1033,7 +1141,6 @@ res.redirect = function redirect(url) {
  *
  * @param {Array|String} field
  * @return {ServerResponse} for chaining
- * @public
  */
 
 res.vary = function (field) {
@@ -1058,7 +1165,6 @@ res.vary = function (field) {
  *  - `cache`     boolean hinting to the engine it should cache
  *  - `filename`  filename of the view being rendered
  *
- * @public
  */
 
 res.render = function render(view, options, callback) {
@@ -1087,134 +1193,4 @@ res.render = function render(view, options, callback) {
 
     // render
     app.render(view, opts, done)
-}
-
-// pipe the send file stream
-function sendfile(res, file, options, callback) {
-    var done = false
-    var streaming
-
-    // request aborted
-    function onaborted() {
-        if (done) return
-        done = true
-
-        var err = new Error('Request aborted')
-        err.code = 'ECONNABORTED'
-        callback(err)
-    }
-
-    // directory
-    function ondirectory() {
-        if (done) return
-        done = true
-
-        var err = new Error('EISDIR, read')
-        err.code = 'EISDIR'
-        callback(err)
-    }
-
-    // errors
-    function onerror(err) {
-        if (done) return
-        done = true
-        callback(err)
-    }
-
-    // ended
-    function onend() {
-        if (done) return
-        done = true
-        callback()
-    }
-
-    // file
-    function onfile() {
-        streaming = false
-    }
-
-    // finished
-    function onfinish(err) {
-        if (err && err.code === 'ECONNRESET') return onaborted()
-        if (err) return onerror(err)
-        if (done) return
-
-        setImmediate(function () {
-            if (streaming !== false && !done) {
-                onaborted()
-                return
-            }
-
-            if (done) return
-            done = true
-            callback()
-        })
-    }
-
-    // streaming
-    function onstream() {
-        streaming = true
-    }
-
-    file.on('directory', ondirectory)
-    file.on('end', onend)
-    file.on('error', onerror)
-    file.on('file', onfile)
-    file.on('stream', onstream)
-    onFinished(res, onfinish)
-
-    if (options.headers) {
-        // set headers on successful transfer
-        file.on('headers', function headers(res) {
-            var obj = options.headers
-            var keys = Object.keys(obj)
-
-            for (var i = 0; i < keys.length; i++) {
-                var k = keys[i]
-                res.setHeader(k, obj[k])
-            }
-        })
-    }
-
-    // pipe
-    file.pipe(res)
-}
-
-/**
- * Stringify JSON, like JSON.stringify, but v8 optimized, with the
- * ability to escape characters that can trigger HTML sniffing.
- *
- * @param {*} value
- * @param {function} replacer
- * @param {number} spaces
- * @param {boolean} escape
- * @returns {string}
- * @private
- */
-
-function stringify(value, replacer, spaces, escape) {
-    // v8 checks arguments.length for optimizing simple call
-    // https://bugs.chromium.org/p/v8/issues/detail?id=4730
-    var json =
-        replacer || spaces
-            ? JSON.stringify(value, replacer, spaces)
-            : JSON.stringify(value)
-
-    if (escape && typeof json === 'string') {
-        json = json.replace(/[<>&]/g, function (c) {
-            switch (c.charCodeAt(0)) {
-                case 0x3c:
-                    return '\\u003c'
-                case 0x3e:
-                    return '\\u003e'
-                case 0x26:
-                    return '\\u0026'
-                /* istanbul ignore next: unreachable default */
-                default:
-                    return c
-            }
-        })
-    }
-
-    return json
 }

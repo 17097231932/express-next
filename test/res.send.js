@@ -1,7 +1,7 @@
 var assert = require('assert')
 var Buffer = require('safe-buffer').Buffer
 var express = require('..')
-var methods = require('methods')
+var methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 var request = require('supertest')
 var utils = require('./support/utils')
 

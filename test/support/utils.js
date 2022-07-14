@@ -1,14 +1,8 @@
-/**
- * Module dependencies.
- * @private
- */
-
 var assert = require('assert')
-var Buffer = require('safe-buffer').Buffer
+var { Buffer } = require('safe-buffer')
 
 /**
  * Module exports.
- * @public
  */
 
 exports.shouldHaveBody = shouldHaveBody

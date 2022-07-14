@@ -2,7 +2,7 @@ var after = require('after')
 var assert = require('assert')
 var express = require('../'),
     Route = express.Route,
-    methods = require('methods')
+    methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 
 describe('Route', function () {
     it('should work without handlers', function (done) {

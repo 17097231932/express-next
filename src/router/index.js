@@ -1,18 +1,9 @@
-import { flatten } from 'array-flatten'
-import getLogger from 'debug'
-import depd from 'depd'
-import methods from 'methods'
-import parseUrl from 'parseurl'
+import { parse } from 'url'
+import { deprecate, getLogger, methods } from '../utils'
 import Layer from './layer'
 import Route from './route'
 
 var debug = getLogger('express:router')
-var deprecate = depd('express')
-
-/**
- * Module variables.
- * @private
- */
 
 var setPrototypeOf = Object.setPrototypeOf
 var objectRegExp = /^\[object (\S+)\]$/
@@ -24,7 +15,6 @@ var toString = Object.prototype.toString
  *
  * @param {Object} [options]
  * @return {Router} which is an callable function
- * @public
  */
 
 var proto = function (options) {
@@ -80,7 +70,6 @@ export default proto
  * @param {String} name
  * @param {Function} fn
  * @return {app} for chaining
- * @public
  */
 
 proto.param = function param(name, fn) {
@@ -125,7 +114,6 @@ proto.param = function param(name, fn) {
 
 /**
  * Dispatch a req, res into the router.
- * @private
  */
 
 proto.handle = function handle(req, res, out) {
@@ -328,7 +316,6 @@ proto.handle = function handle(req, res, out) {
 
 /**
  * Process any parameters for the layer.
- * @private
  */
 
 proto.process_params = function process_params(layer, called, req, res, done) {
@@ -432,7 +419,6 @@ proto.process_params = function process_params(layer, called, req, res, done) {
  * handlers can operate without any code changes regardless of the "prefix"
  * pathname.
  *
- * @public
  */
 
 proto.use = function use(fn) {
@@ -455,7 +441,7 @@ proto.use = function use(fn) {
         }
     }
 
-    var callbacks = flatten(slice.call(arguments, offset))
+    var callbacks = slice.call(arguments, offset).flat(Infinity)
 
     if (callbacks.length === 0) {
         throw new TypeError('Router.use() requires a middleware function')
@@ -502,7 +488,6 @@ proto.use = function use(fn) {
  *
  * @param {String} path
  * @return {Route}
- * @public
  */
 
 proto.route = function route(path) {
@@ -546,7 +531,7 @@ function appendMethods(list, addition) {
 // get pathname of request
 function getPathname(req) {
     try {
-        return parseUrl(req).pathname
+        return parse(req.url).pathname
     } catch (err) {
         return undefined
     }
@@ -584,7 +569,6 @@ function gettype(obj) {
  *
  * @param {Layer} layer
  * @param {string} path
- * @private
  */
 
 function matchLayer(layer, path) {

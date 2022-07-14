@@ -1,10 +1,9 @@
-import parseUrl from 'parseurl'
+import { parse } from 'url'
 import qs from 'qs'
 
 /**
  * @param {Object|Function} options
  * @return {Function}
- * @api public
  */
 
 export default function query(options) {
@@ -23,7 +22,7 @@ export default function query(options) {
 
     return function query(req, res, next) {
         if (!req.query) {
-            var val = parseUrl(req).query
+            var val = parse(req.url).query
             req.query = queryparse(val, opts)
         }
 

@@ -1,14 +1,27 @@
 import accepts from 'accepts'
-import depd from 'depd'
 import fresh from 'fresh'
 import { IncomingMessage } from 'http'
 import { isIP } from 'net'
-import parse from 'parseurl'
+import { parse } from 'url'
 import proxyaddr, { all } from 'proxy-addr'
 import parseRange from 'range-parser'
 import typeis from 'type-is'
+import { deprecate } from './utils'
 
-var deprecate = depd('express')
+/**
+ * Helper function for creating a getter on an object.
+ *
+ * @param {Object} obj
+ * @param {String} name
+ * @param {Function} getter
+ */
+function defineGetter(obj, name, getter) {
+    Object.defineProperty(obj, name, {
+        configurable: true,
+        enumerable: true,
+        get: getter,
+    })
+}
 
 var req = Object.create(IncomingMessage.prototype)
 
@@ -35,7 +48,6 @@ export default req
  *
  * @param {String} name
  * @return {String}
- * @public
  */
 
 req.get = req.header = function header(name) {
@@ -101,7 +113,6 @@ req.get = req.header = function header(name) {
  *
  * @param {String|Array} type(s)
  * @return {String|Array|Boolean}
- * @public
  */
 
 req.accepts = function () {
@@ -114,7 +125,6 @@ req.accepts = function () {
  *
  * @param {String} ...encoding
  * @return {String|Array}
- * @public
  */
 
 req.acceptsEncodings = function () {
@@ -133,7 +143,6 @@ req.acceptsEncoding = deprecate.function(
  *
  * @param {String} ...charset
  * @return {String|Array}
- * @public
  */
 
 req.acceptsCharsets = function () {
@@ -152,7 +161,6 @@ req.acceptsCharset = deprecate.function(
  *
  * @param {String} ...lang
  * @return {String|Array}
- * @public
  */
 
 req.acceptsLanguages = function () {
@@ -187,7 +195,6 @@ req.acceptsLanguage = deprecate.function(
  * @param {object} [options]
  * @param {boolean} [options.combine=false]
  * @return {number|array}
- * @public
  */
 
 req.range = function range(size, options) {
@@ -210,7 +217,6 @@ req.range = function range(size, options) {
  * @param {String} name
  * @param {Mixed} [defaultValue]
  * @return {String}
- * @public
  */
 
 req.param = function param(name, defaultValue) {
@@ -256,7 +262,6 @@ req.param = function param(name, defaultValue) {
  *
  * @param {String|Array} types...
  * @return {String|false|null}
- * @public
  */
 
 req.is = function is(types) {
@@ -284,7 +289,6 @@ req.is = function is(types) {
  * supplies https for you this may be enabled.
  *
  * @return {String}
- * @public
  */
 
 defineGetter(req, 'protocol', function protocol() {
@@ -309,7 +313,6 @@ defineGetter(req, 'protocol', function protocol() {
  *    req.protocol === 'https'
  *
  * @return {Boolean}
- * @public
  */
 
 defineGetter(req, 'secure', function secure() {
@@ -323,7 +326,6 @@ defineGetter(req, 'secure', function secure() {
  * "trust proxy" is set.
  *
  * @return {String}
- * @public
  */
 
 defineGetter(req, 'ip', function ip() {
@@ -340,7 +342,6 @@ defineGetter(req, 'ip', function ip() {
  * "proxy2" were trusted.
  *
  * @return {Array}
- * @public
  */
 
 defineGetter(req, 'ips', function ips() {
@@ -366,7 +367,6 @@ defineGetter(req, 'ips', function ips() {
  * If "subdomain offset" is 3, req.subdomains is `["tobi"]`.
  *
  * @return {Array}
- * @public
  */
 
 defineGetter(req, 'subdomains', function subdomains() {
@@ -386,11 +386,10 @@ defineGetter(req, 'subdomains', function subdomains() {
  * Short-hand for `url.parse(req.url).pathname`.
  *
  * @return {String}
- * @public
  */
 
-defineGetter(req, 'path', function path() {
-    return parse(this).pathname
+defineGetter(req, 'path', function () {
+    return parse(this.url).pathname
 })
 
 /**
@@ -401,7 +400,6 @@ defineGetter(req, 'path', function path() {
  * be trusted.
  *
  * @return {String}
- * @public
  */
 
 defineGetter(req, 'hostname', function hostname() {
@@ -441,7 +439,6 @@ defineGetter(
  * still match.
  *
  * @return {Boolean}
- * @public
  */
 
 defineGetter(req, 'fresh', function () {
@@ -469,7 +466,6 @@ defineGetter(req, 'fresh', function () {
  * resource has changed.
  *
  * @return {Boolean}
- * @public
  */
 
 defineGetter(req, 'stale', function stale() {
@@ -480,26 +476,9 @@ defineGetter(req, 'stale', function stale() {
  * Check if the request was an _XMLHttpRequest_.
  *
  * @return {Boolean}
- * @public
  */
 
 defineGetter(req, 'xhr', function xhr() {
     var val = this.get('X-Requested-With') || ''
     return val.toLowerCase() === 'xmlhttprequest'
 })
-
-/**
- * Helper function for creating a getter on an object.
- *
- * @param {Object} obj
- * @param {String} name
- * @param {Function} getter
- * @private
- */
-function defineGetter(obj, name, getter) {
-    Object.defineProperty(obj, name, {
-        configurable: true,
-        enumerable: true,
-        get: getter,
-    })
-}

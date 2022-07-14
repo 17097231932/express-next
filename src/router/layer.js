@@ -1,5 +1,5 @@
-import getLogger from 'debug'
 import pathRegexp from 'path-to-regexp'
+import { getLogger } from '../utils'
 
 const debug = getLogger('express:router:layer')
 /**
