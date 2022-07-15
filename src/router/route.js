@@ -1,10 +1,7 @@
-import { getLogger, methods } from '../utils'
+import { getLogger } from '../utils'
 import Layer from './layer'
 
 const debug = getLogger('express:router:route')
-
-var slice = Array.prototype.slice
-var toString = Object.prototype.toString
 
 export default class Route {
     /**
@@ -146,13 +143,13 @@ export default class Route {
      */
 
     all() {
-        var handles = slice.call(arguments).flat(Infinity)
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
 
         for (var i = 0; i < handles.length; i++) {
             var handle = handles[i]
 
             if (typeof handle !== 'function') {
-                var type = toString.call(handle)
+                var type = Object.prototype.toString.call(handle)
                 var msg =
                     'Route.all() requires a callback function but got a ' +
                     type
@@ -168,34 +165,156 @@ export default class Route {
 
         return this
     }
-}
 
-methods.forEach(function (method) {
-    Route.prototype[method] = function () {
-        var handles = slice.call(arguments).flat(Infinity)
+    // create Route#VERB functions
+
+    get() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
 
         for (var i = 0; i < handles.length; i++) {
             var handle = handles[i]
 
             if (typeof handle !== 'function') {
-                var type = toString.call(handle)
-                var msg =
-                    'Route.' +
-                    method +
-                    '() requires a callback function but got a ' +
-                    type
-                throw new Error(msg)
+                throw new Error(
+                    'Route.get() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
             }
 
-            debug('%s %o', method, this.path)
+            debug('get %o', this.path)
 
             var layer = new Layer('/', {}, handle)
-            layer.method = method
+            layer.method = 'get'
 
-            this.methods[method] = true
+            this.methods.get = true
             this.stack.push(layer)
         }
 
         return this
     }
-})
+
+    post() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i]
+
+            if (typeof handle !== 'function') {
+                throw new Error(
+                    'Route.post() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
+            }
+
+            debug('post %o', this.path)
+
+            var layer = new Layer('/', {}, handle)
+            layer.method = 'post'
+
+            this.methods.post = true
+            this.stack.push(layer)
+        }
+
+        return this
+    }
+
+    put() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i]
+
+            if (typeof handle !== 'function') {
+                throw new Error(
+                    'Route.put() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
+            }
+
+            debug('put %o', this.path)
+
+            var layer = new Layer('/', {}, handle)
+            layer.method = 'put'
+
+            this.methods.put = true
+            this.stack.push(layer)
+        }
+
+        return this
+    }
+
+    head() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i]
+
+            if (typeof handle !== 'function') {
+                throw new Error(
+                    'Route.head() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
+            }
+
+            debug('head %o', this.path)
+
+            var layer = new Layer('/', {}, handle)
+            layer.method = 'head'
+
+            this.methods.head = true
+            this.stack.push(layer)
+        }
+
+        return this
+    }
+
+    delete() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i]
+
+            if (typeof handle !== 'function') {
+                throw new Error(
+                    'Route.delete() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
+            }
+
+            debug('delete %o', this.path)
+
+            var layer = new Layer('/', {}, handle)
+            layer.method = 'delete'
+
+            this.methods.delete = true
+            this.stack.push(layer)
+        }
+
+        return this
+    }
+
+    options() {
+        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i]
+
+            if (typeof handle !== 'function') {
+                throw new Error(
+                    'Route.options() requires a callback function but got a ' +
+                        Object.prototype.toString.call(handle)
+                )
+            }
+
+            debug('options %o', this.path)
+
+            var layer = new Layer('/', {}, handle)
+            layer.method = 'options'
+
+            this.methods.options = true
+            this.stack.push(layer)
+        }
+
+        return this
+    }
+}

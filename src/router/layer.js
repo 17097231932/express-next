@@ -2,13 +2,13 @@ import pathRegexp from 'path-to-regexp'
 import { getLogger } from '../utils'
 
 const debug = getLogger('express:router:layer')
+
 /**
  * Decode param value.
  *
  * @param {string} val
  * @return {string}
  */
-
 function decode_param(val) {
     if (typeof val !== 'string' || val.length === 0) {
         return val

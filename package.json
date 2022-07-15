@@ -56,5 +56,11 @@
         "precommit": "pnpm install && pnpm lint && pnpm build && pnpm test",
         "test": "mocha --reporter progress --require test/support/env test/ test/acceptance/",
         "watch": "rollup -c -w"
-    }
+    },
+    "files": [
+        "dist",
+        "LICENSE",
+        "index.js",
+        "README.md"
+    ]
 }
