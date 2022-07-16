@@ -1,4 +1,4 @@
-var app = require('../../examples/multi-router')
+var app = require('express-examples/multi-router')
 var request = require('supertest')
 
 describe('multi-router', function () {

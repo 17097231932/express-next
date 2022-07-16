@@ -1,5 +1,5 @@
 var request = require('supertest'),
-    app = require('../../examples/content-negotiation')
+    app = require('express-examples/content-negotiation')
 
 describe('content-negotiation', function () {
     describe('GET /', function () {

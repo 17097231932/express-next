@@ -1,4 +1,4 @@
-var express = require('../')
+var express = require('express')
 
 describe('app.listen()', function () {
     it('should wrap with an HTTP server', function (done) {

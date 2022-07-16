@@ -1,5 +1,5 @@
 var request = require('supertest'),
-    app = require('../../examples/web-service')
+    app = require('express-examples/web-service')
 
 describe('web-service', function () {
     describe('GET /api/users', function () {

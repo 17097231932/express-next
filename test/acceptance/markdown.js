@@ -1,4 +1,4 @@
-var app = require('../../examples/markdown')
+var app = require('express-examples/markdown')
 var request = require('supertest')
 
 describe('markdown', function () {

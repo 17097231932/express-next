@@ -1,4 +1,4 @@
-var app = require('../../examples/params')
+var app = require('express-examples/params')
 var request = require('supertest')
 
 describe('params', function () {

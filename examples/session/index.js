@@ -8,7 +8,7 @@
 var express = require('express')
 var session = require('express-session')
 
-var app = express()
+var app = (module.exports = express())
 
 // Populates req.session
 app.use(
@@ -37,7 +37,7 @@ app.get('/', function (req, res) {
 })
 
 /* istanbul ignore next */
-if (!module.parent) {
+if (!require.main) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

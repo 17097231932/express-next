@@ -1,4 +1,4 @@
-var app = require('../../examples/cookies'),
+var app = require('express-examples/cookies'),
     request = require('supertest')
 var utils = require('../support/utils')
 

@@ -1,7 +1,7 @@
 var after = require('after')
 var asyncHooks = tryRequire('async_hooks')
 var Buffer = require('safe-buffer').Buffer
-var express = require('../'),
+var express = require('express'),
     request = require('supertest'),
     assert = require('assert')
 var onFinished = require('on-finished')
@@ -919,7 +919,7 @@ describe('res', function () {
             var cb = after(2, done)
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/user.html', cb)
+                res.sendfile('./fixtures/user.html', cb)
             })
 
             request(app).get('/').expect(200, cb)
@@ -929,7 +929,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/user.html', { maxAge: 60000 })
+                res.sendfile('./fixtures/user.html', { maxAge: 60000 })
             })
 
             request(app)
@@ -944,7 +944,7 @@ describe('res', function () {
 
             app.use(function (req, res) {
                 setImmediate(function () {
-                    res.sendfile('test/fixtures/name.txt', function (err) {
+                    res.sendfile('./fixtures/name.txt', function (err) {
                         assert.ok(err)
                         assert.strictEqual(err.code, 'ECONNABORTED')
                         cb()
@@ -967,7 +967,7 @@ describe('res', function () {
 
             app.use(function (req, res) {
                 onFinished(res, function () {
-                    res.sendfile('test/fixtures/name.txt', function (err) {
+                    res.sendfile('./fixtures/name.txt', function (err) {
                         assert.ok(err)
                         assert.strictEqual(err.code, 'ECONNABORTED')
                         cb()
@@ -989,7 +989,7 @@ describe('res', function () {
             var cb = after(2, done)
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/name.txt', cb)
+                res.sendfile('./fixtures/name.txt', cb)
             })
 
             request(app).head('/').expect(200, cb)
@@ -1000,7 +1000,7 @@ describe('res', function () {
             var cb = after(3, done)
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/name.txt', cb)
+                res.sendfile('./fixtures/name.txt', cb)
             })
 
             request(app)
@@ -1021,7 +1021,7 @@ describe('res', function () {
             var calls = 0
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/nope.html', function (err) {
+                res.sendfile('./fixtures/nope.html', function (err) {
                     assert.equal(calls++, 0)
                     assert(!res.headersSent)
                     res.send(err.message)
@@ -1038,7 +1038,7 @@ describe('res', function () {
 
             app.use(function (req, res) {
                 res.contentType('txt')
-                res.sendfile('test/fixtures/user.html')
+                res.sendfile('./fixtures/user.html')
             })
 
             request(app)
@@ -1051,7 +1051,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/foo/../user.html', function (err) {
+                res.sendfile('./fixtures/foo/../user.html', function (err) {
                     assert(!res.headersSent)
                     res.send(err.message)
                 })
@@ -1064,7 +1064,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/user.html', function (err) {
+                res.sendfile('./fixtures/user.html', function (err) {
                     assert(!res.headersSent)
                     assert.strictEqual(req.socket.listeners('error').length, 1) // node's original handler
                     done()
@@ -1090,7 +1090,7 @@ describe('res', function () {
                 })
 
                 app.use(function (req, res) {
-                    res.sendfile('test/fixtures/name.txt', function (err) {
+                    res.sendfile('./fixtures/name.txt', function (err) {
                         if (err) return cb(err)
 
                         var local = req.asyncLocalStorage.getStore()
@@ -1116,22 +1116,17 @@ describe('res', function () {
                 })
 
                 app.use(function (req, res) {
-                    res.sendfile(
-                        'test/fixtures/does-not-exist',
-                        function (err) {
-                            var local = req.asyncLocalStorage.getStore()
+                    res.sendfile('./fixtures/does-not-exist', function (err) {
+                        var local = req.asyncLocalStorage.getStore()
 
-                            if (local) {
-                                res.setHeader('x-store-foo', String(local.foo))
-                            }
-
-                            res.send(
-                                err
-                                    ? 'got ' + err.status + ' error'
-                                    : 'no error'
-                            )
+                        if (local) {
+                            res.setHeader('x-store-foo', String(local.foo))
                         }
-                    )
+
+                        res.send(
+                            err ? 'got ' + err.status + ' error' : 'no error'
+                        )
+                    })
                 })
 
                 request(app)
@@ -1149,7 +1144,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/.name')
+                res.sendfile('./fixtures/.name')
             })
 
             request(app).get('/').expect(404, done)
@@ -1159,7 +1154,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/.name', { dotfiles: 'allow' })
+                res.sendfile('./fixtures/.name', { dotfiles: 'allow' })
             })
 
             request(app)
@@ -1177,7 +1172,7 @@ describe('res', function () {
             }
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/user.html', { headers: headers })
+                res.sendfile('./fixtures/user.html', { headers: headers })
             })
 
             request(app)
@@ -1192,7 +1187,7 @@ describe('res', function () {
             var headers = { 'x-success': 'sent' }
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/user.nothing', {
+                res.sendfile('./fixtures/user.nothing', {
                     headers: headers,
                 })
             })
@@ -1207,7 +1202,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/name.txt')
+                res.sendfile('./fixtures/name.txt')
             })
 
             request(app).get('/').expect(200, 'tobi', done)
@@ -1217,7 +1212,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/blog/')
+                res.sendfile('./fixtures/blog/')
             })
 
             request(app).get('/').expect(200, '<b>index</b>', done)
@@ -1227,7 +1222,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/blog')
+                res.sendfile('./fixtures/blog')
             })
 
             request(app).get('/').expect(404, done)
@@ -1237,7 +1232,7 @@ describe('res', function () {
             var app = express()
 
             app.use(function (req, res) {
-                res.sendfile('test/fixtures/%25%20of%20dogs.txt')
+                res.sendfile('./fixtures/%25%20of%20dogs.txt')
             })
 
             request(app).get('/').expect(200, '20%', done)
@@ -1291,7 +1286,7 @@ describe('res', function () {
                 var app = express()
 
                 app.use(function (req, res) {
-                    res.sendfile('test/fixtures/user.html')
+                    res.sendfile('./fixtures/user.html')
                 })
 
                 request(app)
@@ -1304,7 +1299,7 @@ describe('res', function () {
                 var app = express()
 
                 app.use(function (req, res) {
-                    res.sendfile('user.html', { root: 'test/fixtures/' })
+                    res.sendfile('user.html', { root: './fixtures/' })
                 })
 
                 request(app)
@@ -1317,7 +1312,7 @@ describe('res', function () {
                 var app = express()
 
                 app.use(function (req, res) {
-                    res.sendfile('test/fixtures/foo/../user.html')
+                    res.sendfile('./fixtures/foo/../user.html')
                 })
 
                 request(app).get('/').expect(403, done)
@@ -1327,7 +1322,7 @@ describe('res', function () {
                 var app = express()
 
                 app.use(function (req, res) {
-                    res.sendfile('foo/../user.html', { root: 'test/fixtures' })
+                    res.sendfile('foo/../user.html', { root: './fixtures' })
                 })
 
                 request(app).get('/').expect(200, done)
@@ -1338,7 +1333,7 @@ describe('res', function () {
 
                 app.use(function (req, res) {
                     res.sendfile('foo/../../user.html', {
-                        root: 'test/fixtures',
+                        root: './fixtures',
                     })
                 })
 

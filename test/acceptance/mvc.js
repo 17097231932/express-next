@@ -1,5 +1,5 @@
 var request = require('supertest'),
-    app = require('../../examples/mvc')
+    app = require('express-examples/mvc')
 
 describe('mvc', function () {
     describe('GET /', function () {

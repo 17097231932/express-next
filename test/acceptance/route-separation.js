@@ -1,4 +1,4 @@
-var app = require('../../examples/route-separation')
+var app = require('express-examples/route-separation')
 var request = require('supertest')
 
 describe('route-separation', function () {

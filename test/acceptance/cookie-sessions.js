@@ -1,4 +1,4 @@
-var app = require('../../examples/cookie-sessions')
+var app = require('express-examples/cookie-sessions')
 var request = require('supertest')
 
 describe('cookie-sessions', function () {

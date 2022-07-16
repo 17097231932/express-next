@@ -1,5 +1,5 @@
 var Buffer = require('safe-buffer').Buffer
-var express = require('../'),
+var express = require('express'),
     request = require('supertest')
 
 describe('res', function () {

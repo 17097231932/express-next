@@ -1,4 +1,4 @@
-var express = require('../'),
+var express = require('express'),
     request = require('supertest'),
     assert = require('assert')
 var utils = require('./support/utils')

@@ -1,4 +1,4 @@
-var express = require('..')
+var express = require('express')
 var path = require('path')
 var request = require('supertest')
 var tmpl = require('./support/tmpl')

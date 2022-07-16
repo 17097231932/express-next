@@ -15,14 +15,14 @@ This page contains list of examples using Express.
 - [multi-router](./multi-router) - Working with multiple Express routers
 - [multipart](./multipart) - Accepting multipart-encoded forms
 - [mvc](./mvc) - MVC-style controllers
-- [online](./online) - Tracking online user activity with `online` and `redis` packages
+- [online](./online) - Tracking online user activity with `online` and `redis` packages (Required Redis)
 - [params](./params) - Working with route parameters
 - [resource](./resource) - Multiple HTTP operations on the same resource
 - [route-map](./route-map) - Organizing routes using a map
 - [route-middleware](./route-middleware) - Working with route middleware
 - [route-separation](./route-separation) - Organizing routes per each resource
-- [search](./search) - Search API
-- [session](./session) - User sessions
+- [search](./search) - Search API (Required Redis)
+- [session](./session) - User sessions (Some contents require Redis)
 - [static-files](./static-files) - Serving static files
 - [vhost](./vhost) - Working with virtual hosts
 - [view-constructor](./view-constructor) - Rendering views dynamically

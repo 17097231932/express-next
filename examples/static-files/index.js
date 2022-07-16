@@ -5,7 +5,7 @@
 var express = require('express')
 var logger = require('morgan')
 var path = require('path')
-var app = express()
+var app = (module.exports = express())
 
 // log requests
 app.use(logger('dev'))

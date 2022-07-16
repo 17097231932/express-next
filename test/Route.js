@@ -1,6 +1,6 @@
 var after = require('after')
 var assert = require('assert')
-var express = require('../'),
+var express = require('express'),
     Route = express.Route,
     methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 

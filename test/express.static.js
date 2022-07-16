@@ -1,6 +1,6 @@
 var assert = require('assert')
 var { Buffer } = require('safe-buffer')
-var express = require('..')
+var express = require('express')
 var path = require('path')
 var request = require('supertest')
 var utils = require('./support/utils')

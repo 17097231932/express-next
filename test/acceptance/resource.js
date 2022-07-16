@@ -1,4 +1,4 @@
-var app = require('../../examples/resource')
+var app = require('express-examples/resource')
 var request = require('supertest')
 
 describe('resource', function () {

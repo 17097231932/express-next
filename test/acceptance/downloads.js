@@ -1,4 +1,4 @@
-var app = require('../../examples/downloads'),
+var app = require('express-examples/downloads'),
     request = require('supertest')
 
 describe('downloads', function () {

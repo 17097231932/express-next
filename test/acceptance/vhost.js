@@ -1,4 +1,4 @@
-var app = require('../../examples/vhost')
+var app = require('express-examples/vhost')
 var request = require('supertest')
 
 describe('vhost', function () {

@@ -1,4 +1,4 @@
-var express = require('..')
+var express = require('express')
 var request = require('supertest')
 
 describe('req', function () {

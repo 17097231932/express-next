@@ -2,22 +2,13 @@ var assert = require('assert')
 var { Buffer } = require('safe-buffer')
 
 /**
- * Module exports.
- */
-
-exports.shouldHaveBody = shouldHaveBody
-exports.shouldHaveHeader = shouldHaveHeader
-exports.shouldNotHaveBody = shouldNotHaveBody
-exports.shouldNotHaveHeader = shouldNotHaveHeader
-
-/**
  * Assert that a supertest response has a specific body.
  *
  * @param {Buffer} buf
  * @returns {function}
  */
 
-function shouldHaveBody(buf) {
+exports.shouldHaveBody = function shouldHaveBody(buf) {
     return function (res) {
         var body = !Buffer.isBuffer(res.body)
             ? Buffer.from(res.text)
@@ -34,7 +25,7 @@ function shouldHaveBody(buf) {
  * @returns {function}
  */
 
-function shouldHaveHeader(header) {
+exports.shouldHaveHeader = function shouldHaveHeader(header) {
     return function (res) {
         assert.ok(
             header.toLowerCase() in res.headers,
@@ -49,7 +40,7 @@ function shouldHaveHeader(header) {
  * @returns {function}
  */
 
-function shouldNotHaveBody() {
+exports.shouldNotHaveBody = function shouldNotHaveBody() {
     return function (res) {
         assert.ok(res.text === '' || res.text === undefined)
     }
@@ -61,7 +52,7 @@ function shouldNotHaveBody() {
  * @param {string} header Header name to check
  * @returns {function}
  */
-function shouldNotHaveHeader(header) {
+exports.shouldNotHaveHeader = function shouldNotHaveHeader(header) {
     return function (res) {
         assert.ok(
             !(header.toLowerCase() in res.headers),

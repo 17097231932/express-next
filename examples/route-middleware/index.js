@@ -4,7 +4,7 @@
 
 var express = require('express')
 
-var app = express()
+var app = (module.exports = express())
 
 // Example requests:
 //     curl http://localhost:3000/user/0
@@ -87,7 +87,7 @@ app.delete('/user/:id', loadUser, andRestrictTo('admin'), function (req, res) {
 })
 
 /* istanbul ignore next */
-if (!module.parent) {
+if (!require.main) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

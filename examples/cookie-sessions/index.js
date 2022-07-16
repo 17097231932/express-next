@@ -20,7 +20,7 @@ function count(req, res) {
 }
 
 /* istanbul ignore next */
-if (!module.parent) {
+if (!require.main) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

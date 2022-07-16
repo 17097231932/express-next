@@ -1,4 +1,4 @@
-var app = require('../../examples/error-pages'),
+var app = require('express-examples/error-pages'),
     request = require('supertest')
 
 describe('error-pages', function () {

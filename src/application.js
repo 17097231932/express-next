@@ -152,7 +152,7 @@ export default function createApplicationPrototype() {
                 callback ||
                 finalhandler(req, res, {
                     env: this.get('env'),
-                    onerror: () => {
+                    onerror: err => {
                         //Log error using console.error.
                         if (this.get('env') !== 'test') {
                             console.error(err.stack || err.toString())

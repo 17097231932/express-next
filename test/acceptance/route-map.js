@@ -1,5 +1,5 @@
 var request = require('supertest'),
-    app = require('../../examples/route-map')
+    app = require('express-examples/route-map')
 
 describe('route-map', function () {
     describe('GET /users', function () {
