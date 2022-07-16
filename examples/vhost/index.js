@@ -18,7 +18,7 @@ edit /etc/hosts:
 
 var main = (module.exports = express())
 
-if (!require.main) main.use(logger('dev'))
+if (require.main === module) main.use(logger('dev'))
 
 main.get('/', function (req, res) {
     res.send('Hello from main app!')
@@ -33,7 +33,7 @@ main.get('/:sub', function (req, res) {
 var redirect = express()
 
 redirect.use(function (req, res) {
-    if (!require.main) console.log(req.vhost)
+    if (require.main === module) console.log(req.vhost)
     res.redirect('http://example.com:3000/' + req.vhost[0])
 })
 
@@ -45,7 +45,7 @@ app.use(vhost('*.example.com', redirect)) // Serves all subdomains via Redirect 
 app.use(vhost('example.com', main)) // Serves top level domain via Main server app
 
 /* istanbul ignore next */
-if (!require.main) {
+if (require.main === module) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

@@ -180,11 +180,12 @@ if (cluster.isWorker) {
         const app = module['default']
         const server = app.listen(parseInt(port), () => {
             process.send({ type: 'ready' })
-            console.log(`Example ${name} started on port ${port}`)
+            console.log(`Example ${name} started on port ${port}.`)
         })
         process.on('message', ({ type }) => {
             if (type === 'close') {
                 server.close()
+                console.log(`Example ${name} on port ${port} stopped.`)
             }
         })
     } catch (e) {

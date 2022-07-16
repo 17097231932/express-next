@@ -105,7 +105,7 @@ app.use(function (req, res) {
 })
 
 /* istanbul ignore next */
-if (!require.main) {
+if (require.main === module) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

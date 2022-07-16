@@ -29,7 +29,7 @@ app.response.message = function (msg) {
 }
 
 // log
-if (!require.main) app.use(logger('dev'))
+if (require.main === module) app.use(logger('dev'))
 
 // serve static files
 app.use(express.static(path.join(__dirname, 'public')))
@@ -73,11 +73,11 @@ app.use(function (req, res, next) {
 })
 
 // load controllers
-require('./lib/boot')(app, { verbose: !require.main })
+require('./lib/boot')(app, { verbose: require.main === module })
 
 app.use(function (err, req, res, next) {
     // log it
-    if (!require.main) console.error(err.stack)
+    if (require.main === module) console.error(err.stack)
 
     // error page
     res.status(500).render('5xx')
@@ -89,7 +89,7 @@ app.use(function (req, res, next) {
 })
 
 /* istanbul ignore next */
-if (!require.main) {
+if (require.main === module) {
     app.listen(3000)
     console.log('Express started on port 3000')
 }

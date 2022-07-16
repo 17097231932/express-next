@@ -67,10 +67,7 @@ export default function createApplicationPrototype() {
             this.set('trust proxy', false)
 
             // trust proxy inherit back-compat
-            Object.defineProperty(this.settings, trustProxyDefaultSymbol, {
-                configurable: true,
-                value: true,
-            })
+            this.settings[trustProxyDefaultSymbol] = true
 
             debug('booting in %s mode', env)
 
@@ -110,7 +107,7 @@ export default function createApplicationPrototype() {
             }
 
             Object.defineProperty(this, 'router', {
-                get: function () {
+                get() {
                     throw new Error(
                         "'app.router' is deprecated!\nPlease see the 3.x to 4.x migration guide for details on how to update your app."
                     )
@@ -370,14 +367,7 @@ export default function createApplicationPrototype() {
                     this.set('trust proxy fn', compileTrust(val))
 
                     // trust proxy inherit back-compat
-                    Object.defineProperty(
-                        this.settings,
-                        trustProxyDefaultSymbol,
-                        {
-                            configurable: true,
-                            value: false,
-                        }
-                    )
+                    this.settings[trustProxyDefaultSymbol] = false
 
                     break
             }
@@ -535,13 +525,9 @@ export default function createApplicationPrototype() {
 
         // del -> delete alias
 
-        del(path) {
+        del(...args) {
             deprecate('app.del: Use app.delete instead')
-            this.lazyrouter()
-
-            var route = this._router.route(path)
-            route.delete.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
+            return this.delete(...args)
         },
 
         /**
