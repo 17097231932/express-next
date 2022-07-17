@@ -20,7 +20,7 @@ export function init(app) {
         Object.setPrototypeOf(req, app.request)
         Object.setPrototypeOf(res, app.response)
 
-        res.locals = res.locals || Object.create(null)
+        res.locals = res.locals || {}
 
         next()
     }

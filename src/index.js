@@ -12,16 +12,15 @@ export default function createApplication() {
         app.handle(req, res, next)
     }
 
-    // mixin(app, EventEmitter.prototype, false)
     Object.assign(app, application)
 
     // expose the prototype that will get set on requests
-    app.request = Object.create(request)
-    app.request.app = app
+    app.request = { app }
+    Object.setPrototypeOf(app.request, request)
 
     // expose the prototype that will get set on responses
-    app.response = Object.create(response)
-    app.response.app = app
+    app.response = { app }
+    Object.setPrototypeOf(app.response, response)
 
     app.init()
     return app

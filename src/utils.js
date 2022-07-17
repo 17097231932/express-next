@@ -1,6 +1,5 @@
 import contentType from 'content-type'
-import debug from 'debug'
-import depd from 'depd'
+import { format } from 'util'
 import generateETag from 'etag'
 import proxyaddr from 'proxy-addr'
 import qs from 'qs'
@@ -8,8 +7,26 @@ import querystring from 'querystring'
 import { Buffer } from 'safe-buffer'
 import { mime } from 'send'
 
-export const getLogger = namespace => debug(namespace)
-export const deprecate = depd('express')
+export const getLogger =
+    namespace =>
+    (...args) => {
+        if (process.env.EXPRESS_DEBUG) {
+            console.log(format('%s:%s', namespace, format(...args)))
+        }
+    }
+
+export const deprecate = msg => {
+    if (process.noDeprecation) {
+        return
+    }
+    if (
+        process.env.NO_DEPRECATION &&
+        process.env.NO_DEPRECATION.includes('express')
+    ) {
+        return
+    }
+    console.warn(`express:deprecate:${msg}`)
+}
 
 export const methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 

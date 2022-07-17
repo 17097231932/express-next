@@ -147,7 +147,7 @@ function sendfile(res, file, options, callback) {
     file.pipe(res)
 }
 
-var res = {
+const response = {
     /**
      * Set status `code`.
      *
@@ -909,7 +909,7 @@ var res = {
                         'Content-Type cannot be set to an Array'
                     )
                 }
-                if (!charsetRegExp.test(value)) {
+                if (!/;\s*charset\s*=/.test(value)) {
                     var charset = mime.charsets.lookup(value.split(';')[0])
                     if (charset) value += '; charset=' + charset.toLowerCase()
                 }
@@ -1204,8 +1204,6 @@ var res = {
     },
 }
 
-Object.setPrototypeOf(res, ServerResponse.prototype)
+Object.setPrototypeOf(response, ServerResponse.prototype)
 
-export default res
-
-var charsetRegExp = /;\s*charset\s*=/
+export default response

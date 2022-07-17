@@ -22,6 +22,8 @@ const debug = getLogger('express:application')
  */
 const trustProxyDefaultSymbol = Symbol.for('trust_proxy_default')
 
+export const isApplication = Symbol.for('express.Application')
+
 /**
  * Application prototype.
  */
@@ -29,10 +31,11 @@ const trustProxyDefaultSymbol = Symbol.for('trust_proxy_default')
 export default function createApplicationPrototype() {
     return {
         ...EventEmitter.prototype,
+        [isApplication]: true,
         cache: {},
         engines: {},
         settings: {},
-        locals: Object.create(null),
+        locals: {},
         mountpath: null,
         _router: null,
 
@@ -56,7 +59,7 @@ export default function createApplicationPrototype() {
          * Initialize application configuration.
          */
         defaultConfiguration() {
-            var env = process.env.NODE_ENV || 'development'
+            const env = process.env.NODE_ENV || 'development'
 
             // default settings
             this.enable('x-powered-by')
@@ -71,7 +74,7 @@ export default function createApplicationPrototype() {
 
             debug('booting in %s mode', env)
 
-            this.on('mount', function onmount(parent) {
+            this.on('mount', parent => {
                 // inherit trust proxy
                 if (
                     this.settings[trustProxyDefaultSymbol] === true &&
@@ -89,7 +92,7 @@ export default function createApplicationPrototype() {
             })
 
             // setup locals
-            this.locals = Object.create(null)
+            this.locals = {}
 
             // top-most app is mounted at /
             this.mountpath = '/'
@@ -116,210 +119,6 @@ export default function createApplicationPrototype() {
         },
 
         /**
-         * lazily adds the base router if it has not yet been added.
-         *
-         * We cannot add the base router in the defaultConfiguration because
-         * it reads app settings which might be set after that has run.
-         *
-         */
-        lazyrouter() {
-            if (!this._router) {
-                this._router = new Router({
-                    caseSensitive: this.enabled('case sensitive routing'),
-                    strict: this.enabled('strict routing'),
-                })
-
-                this._router.use(query(this.get('query parser fn')))
-                this._router.use(init(this))
-            }
-        },
-
-        /**
-         * Dispatch a req, res pair into the application. Starts pipeline processing.
-         *
-         * If no callback is provided, then default error handlers will respond
-         * in the event of an error bubbling through the stack.
-         *
-         */
-        handle(req, res, callback) {
-            var router = this._router
-
-            // final handler
-            var done =
-                callback ||
-                finalhandler(req, res, {
-                    env: this.get('env'),
-                    onerror: err => {
-                        //Log error using console.error.
-                        if (this.get('env') !== 'test') {
-                            console.error(err.stack || err.toString())
-                        }
-                    },
-                })
-
-            // no routes
-            if (!router) {
-                debug('no routes defined on app')
-                done()
-                return
-            }
-
-            router.handle(req, res, done)
-        },
-
-        /**
-         * Proxy `Router#use()` to add middleware to the app router.
-         * See Router#use() documentation for details.
-         *
-         * If the _fn_ parameter is an express app, then it will be
-         * mounted at the _route_ specified.
-         *
-         */
-        use(fn) {
-            var offset = 0
-            var path = '/'
-
-            // default path to '/'
-            // disambiguate app.use([fn])
-            if (typeof fn !== 'function') {
-                var arg = fn
-
-                while (Array.isArray(arg) && arg.length !== 0) {
-                    arg = arg[0]
-                }
-
-                // first arg is the path
-                if (typeof arg !== 'function') {
-                    offset = 1
-                    path = fn
-                }
-            }
-
-            var fns = Array.prototype.slice
-                .call(arguments, offset)
-                .flat(Infinity)
-
-            if (fns.length === 0) {
-                throw new TypeError('app.use() requires a middleware function')
-            }
-
-            // setup router
-            this.lazyrouter()
-            var router = this._router
-
-            fns.forEach(function (fn) {
-                // non-express app
-                if (!fn || !fn.handle || !fn.set) {
-                    return router.use(path, fn)
-                }
-
-                debug('.use app under %s', path)
-                fn.mountpath = path
-                fn.parent = this
-
-                // restore .app property on req and res
-                router.use(path, function mounted_app(req, res, next) {
-                    var orig = req.app
-                    fn.handle(req, res, function (err) {
-                        Object.setPrototypeOf(req, orig.request)
-                        Object.setPrototypeOf(res, orig.response)
-                        next(err)
-                    })
-                })
-
-                // mounted an app
-                fn.emit('mount', this)
-            }, this)
-
-            return this
-        },
-
-        /**
-         * Proxy to the app `Router#route()`
-         * Returns a new `Route` instance for the _path_.
-         *
-         * Routes are isolated middleware stacks for specific paths.
-         * See the Route api docs for details.
-         *
-         */
-        route(path) {
-            this.lazyrouter()
-            return this._router.route(path)
-        },
-
-        /**
-         * Register the given template engine callback `fn`
-         * as `ext`.
-         *
-         * By default will `require()` the engine based on the
-         * file extension. For example if you try to render
-         * a "foo.ejs" file Express will invoke the following internally:
-         *
-         *     app.engine('ejs', require('ejs').__express);
-         *
-         * For engines that do not provide `.__express` out of the box,
-         * or if you wish to "map" a different extension to the template engine
-         * you may use this method. For example mapping the EJS template engine to
-         * ".html" files:
-         *
-         *     app.engine('html', require('ejs').renderFile);
-         *
-         * In this case EJS provides a `.renderFile()` method with
-         * the same signature that Express expects: `(path, options, callback)`,
-         * though note that it aliases this method as `ejs.__express` internally
-         * so if you're using ".ejs" extensions you don't need to do anything.
-         *
-         * Some template engines do not follow this convention, the
-         * [Consolidate.js](https://github.com/tj/consolidate.js)
-         * library was created to map all of node's popular template
-         * engines to follow this convention, thus allowing them to
-         * work seamlessly within Express.
-         *
-         * @param {String} ext
-         * @param {Function} fn
-         * @return {app} for chaining
-         */
-        engine(ext, fn) {
-            if (typeof fn !== 'function') {
-                throw new Error('callback function required')
-            }
-
-            // get file extension
-            var extension = ext[0] !== '.' ? '.' + ext : ext
-
-            // store engine
-            this.engines[extension] = fn
-
-            return this
-        },
-
-        /**
-         * Proxy to `Router#param()` with one added api feature. The _name_ parameter
-         * can be an array of names.
-         *
-         * See the Router#param() docs for more details.
-         *
-         * @param {String|Array} name
-         * @param {Function} fn
-         * @return {app} for chaining
-         */
-        param(name, fn) {
-            this.lazyrouter()
-
-            if (Array.isArray(name)) {
-                for (var i = 0; i < name.length; i++) {
-                    this.param(name[i], fn)
-                }
-
-                return this
-            }
-
-            this._router.param(name, fn)
-
-            return this
-        },
-
-        /**
          * Assign `setting` to `val`, or return `setting`'s value.
          *
          *    app.set('foo', 'bar');
@@ -328,67 +127,47 @@ export default function createApplicationPrototype() {
          *
          * Mounted servers inherit their parent server's settings.
          *
-         * @param {String} setting
-         * @param {*} [val]
+         * @param {string} key
+         * @param {any} [value]
          * @return {Server} for chaining
          */
-        set(setting, val) {
+        set(key, value) {
             if (arguments.length === 1) {
                 // app.get(setting)
-                var settings = this.settings
+                let settings = this.settings
 
                 while (settings && settings !== Object.prototype) {
-                    if (
-                        Object.prototype.hasOwnProperty.call(settings, setting)
-                    ) {
-                        return settings[setting]
+                    if (Object.prototype.hasOwnProperty.call(settings, key)) {
+                        return settings[key]
                     }
 
                     settings = Object.getPrototypeOf(settings)
                 }
 
-                return undefined
+                return
             }
 
-            debug('set "%s" to %o', setting, val)
+            debug('set "%s" to %o', key, value)
 
             // set value
-            this.settings[setting] = val
+            this.settings[key] = value
 
             // trigger matched settings
-            switch (setting) {
+            switch (key) {
                 case 'etag':
-                    this.set('etag fn', compileETag(val))
+                    this.set('etag fn', compileETag(value))
                     break
                 case 'query parser':
-                    this.set('query parser fn', compileQueryParser(val))
+                    this.set('query parser fn', compileQueryParser(value))
                     break
                 case 'trust proxy':
-                    this.set('trust proxy fn', compileTrust(val))
-
+                    this.set('trust proxy fn', compileTrust(value))
                     // trust proxy inherit back-compat
                     this.settings[trustProxyDefaultSymbol] = false
-
                     break
             }
 
             return this
-        },
-
-        /**
-         * Return the app's absolute pathname
-         * based on the parent(s) that have
-         * mounted it.
-         *
-         * For example if the application was
-         * mounted as "/admin", which itself
-         * was mounted as "/blog" then the
-         * return value would be "/blog/admin".
-         *
-         * @return {String}
-         */
-        path() {
-            return this.parent ? this.parent.path() + this.mountpath : ''
         },
 
         /**
@@ -401,12 +180,12 @@ export default function createApplicationPrototype() {
          *    app.enabled('foo')
          *    // => true
          *
-         * @param {String} setting
-         * @return {Boolean}
+         * @param {string} setting
+         * @return {boolean}
          */
 
         enabled(setting) {
-            return Boolean(this.set(setting))
+            return !!this.set(setting)
         },
 
         /**
@@ -446,88 +225,285 @@ export default function createApplicationPrototype() {
             return this.set(setting, false)
         },
 
-        // Delegate `.VERB(...)` calls to `router.VERB(...)`.
+        /**
+         * Return the app's absolute pathname
+         * based on the parent(s) that have
+         * mounted it.
+         *
+         * For example if the application was
+         * mounted as "/admin", which itself
+         * was mounted as "/blog" then the
+         * return value would be "/blog/admin".
+         *
+         * @return {String}
+         */
+        path() {
+            return this.parent ? this.parent.path() + this.mountpath : ''
+        },
 
-        get(path) {
-            if (arguments.length === 1) {
-                // app.get(setting)
-                return this.set(path)
+        /**
+         * lazily adds the base router if it has not yet been added.
+         *
+         * We cannot add the base router in the defaultConfiguration because
+         * it reads app settings which might be set after that has run.
+         *
+         */
+        getRouter() {
+            if (!this._router) {
+                this._router = new Router({
+                    caseSensitive: this.enabled('case sensitive routing'),
+                    strict: this.enabled('strict routing'),
+                })
+
+                this._router.use(query(this.get('query parser fn')))
+                this._router.use(init(this))
             }
 
-            this.lazyrouter()
-
-            var route = this._router.route(path)
-            route.get.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
+            return this._router
         },
 
-        post(path) {
-            this.lazyrouter()
+        /**
+         * Dispatch a req, res pair into the application. Starts pipeline processing.
+         *
+         * If no callback is provided, then default error handlers will respond
+         * in the event of an error bubbling through the stack.
+         *
+         */
+        handle(req, res, callback) {
+            const router = this._router
 
-            var route = this._router.route(path)
-            route.post.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
+            // final handler
+            if (!callback) {
+                callback = finalhandler(req, res, {
+                    env: this.get('env'),
+                    onerror: err => {
+                        // Log error using console.error.
+                        // this refer to application
+                        if (this.get('env') !== 'test') {
+                            console.error(err.stack || err.toString())
+                        }
+                    },
+                })
+            }
+
+            // no routes
+            if (!router) {
+                debug('no routes defined on app')
+                callback()
+                return
+            }
+
+            return router.handle(req, res, callback)
         },
 
-        put(path) {
-            this.lazyrouter()
+        /**
+         * Proxy `Router#use()` to add middleware to the app router.
+         * See Router#use() documentation for details.
+         *
+         * If the _fn_ parameter is an express app, then it will be
+         * mounted at the _route_ specified.
+         *
+         */
+        use(...args) {
+            let path
 
-            var route = this._router.route(path)
-            route.put.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
-        },
+            if (Array.isArray(args[0])) {
+                let arg0 = args[0]
+                while (Array.isArray(arg0) && arg0.length) {
+                    arg0 = arg0[0]
+                }
 
-        head(path) {
-            this.lazyrouter()
+                if (typeof arg0 !== 'function') {
+                    path = args.shift()
+                }
+            }
 
-            var route = this._router.route(path)
-            route.head.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
-        },
+            const middlewares = args.flat(Infinity)
 
-        delete(path) {
-            this.lazyrouter()
+            if (!path) {
+                if (typeof middlewares[0] !== 'function') {
+                    path = middlewares.shift()
+                } else {
+                    path = '/'
+                }
+            }
 
-            var route = this._router.route(path)
-            route.delete.apply(route, Array.prototype.slice.call(arguments, 1))
-            return this
-        },
+            if (!middlewares.length) {
+                throw new TypeError('app.use() requires a middleware function')
+            }
 
-        options(path) {
-            this.lazyrouter()
+            // setup router
+            const router = this.getRouter()
 
-            var route = this._router.route(path)
-            route.options.apply(
-                route,
-                Array.prototype.slice.call(arguments, 1)
-            )
+            for (const middleware of middlewares) {
+                if (middleware && middleware[isApplication]) {
+                    // express app
+                    debug('.use app under %s', path)
+
+                    middleware.mountpath = path
+                    middleware.parent = this
+
+                    // restore .app property on req and res
+                    router.use(path, (req, res, next) => {
+                        const orig = req.app
+                        middleware.handle(req, res, err => {
+                            Object.setPrototypeOf(req, orig.request)
+                            Object.setPrototypeOf(res, orig.response)
+                            next(err)
+                        })
+                    })
+
+                    // mounted an app
+                    middleware.emit('mount', this)
+                } else {
+                    router.use(path, middleware)
+                }
+            }
+
             return this
         },
 
         /**
+         * Proxy to the app `Router#route()`
+         * Returns a new `Route` instance for the _path_.
+         *
+         * Routes are isolated middleware stacks for specific paths.
+         * See the Route api docs for details.
+         *
+         */
+        route(path) {
+            return this.getRouter().route(path)
+        },
+
+        /**
+         * Proxy to `Router#param()` with one added api feature. The _name_ parameter
+         * can be an array of names.
+         *
+         * See the Router#param() docs for more details.
+         *
+         * @param {String|Array} name
+         * @param {Function} fn
+         * @return {app} for chaining
+         */
+        param(names, fn) {
+            if (!Array.isArray(names)) {
+                names = [names]
+            }
+
+            for (const name of names) {
+                this.getRouter().param(name, fn)
+            }
+
+            return this
+        },
+
+        // Delegate `.VERB(...)` calls to `router.VERB(...)`.
+        _registerRouteHandler(method, path, fns) {
+            this.getRouter()
+                .route(path)
+                [method](...fns)
+            return this
+        },
+
+        get(path, ...fns) {
+            if (path && fns.length === 0) {
+                // app.get(setting)
+                return this.set(path)
+            }
+
+            return this._registerRouteHandler('get', path, fns)
+        },
+
+        post(path, ...fns) {
+            return this._registerRouteHandler('post', path, fns)
+        },
+
+        put(path, ...fns) {
+            return this._registerRouteHandler('put', path, fns)
+        },
+
+        head(path, ...fns) {
+            return this._registerRouteHandler('head', path, fns)
+        },
+
+        delete(path, ...fns) {
+            return this._registerRouteHandler('delete', path, fns)
+        },
+
+        options(path, ...fns) {
+            return this._registerRouteHandler('options', path, fns)
+        },
+
+        /**
          * Special-cased "all" method, applying the given route `path`,
-         * middleware, and callback to _every_ HTTP method.
+         * middleware, and callback to _every_ HTTP method (GET, POST,
+         * PUT, HEAD, DELETE, OPTIONS).
          *
          * @param {String} path
          * @param {Function} ...
          * @return {app} for chaining
          */
-        all(path) {
-            this.lazyrouter()
+        all(path, ...fns) {
+            const route = this.getRouter().route(path)
 
-            var route = this._router.route(path)
-            var args = Array.prototype.slice.call(arguments, 1)
-
-            methods.forEach(method => route[method].apply(route, args))
+            for (const method of methods) {
+                route[method](...fns)
+            }
 
             return this
         },
 
         // del -> delete alias
 
-        del(...args) {
+        del(path, ...fns) {
             deprecate('app.del: Use app.delete instead')
-            return this.delete(...args)
+            return this.delete(path, ...fns)
+        },
+
+        /**
+         * Register the given template engine callback `fn`
+         * as `ext`.
+         *
+         * By default will `require()` the engine based on the
+         * file extension. For example if you try to render
+         * a "foo.ejs" file Express will invoke the following internally:
+         *
+         *     app.engine('ejs', require('ejs').__express);
+         *
+         * For engines that do not provide `.__express` out of the box,
+         * or if you wish to "map" a different extension to the template engine
+         * you may use this method. For example mapping the EJS template engine to
+         * ".html" files:
+         *
+         *     app.engine('html', require('ejs').renderFile);
+         *
+         * In this case EJS provides a `.renderFile()` method with
+         * the same signature that Express expects: `(path, options, callback)`,
+         * though note that it aliases this method as `ejs.__express` internally
+         * so if you're using ".ejs" extensions you don't need to do anything.
+         *
+         * Some template engines do not follow this convention, the
+         * [Consolidate.js](https://github.com/tj/consolidate.js)
+         * library was created to map all of node's popular template
+         * engines to follow this convention, thus allowing them to
+         * work seamlessly within Express.
+         *
+         * @param {String} extname
+         * @param {Function} fn
+         * @return {app} for chaining
+         */
+        engine(extname, fn) {
+            if (typeof fn !== 'function') {
+                throw new Error('callback function required')
+            }
+
+            // get file extension (add '.' to the extension name)
+            const extension = extname[0] !== '.' ? '.' + extname : extname
+
+            // store engine
+            this.engines[extension] = fn
+
+            return this
         },
 
         /**
@@ -546,34 +522,34 @@ export default function createApplicationPrototype() {
          * @param {Function} callback
          */
         render(name, options, callback) {
-            var cache = this.cache
-            var done = callback
-            var engines = this.engines
-            var opts = options
-            var renderOptions = {}
-            var view
+            const cache = this.cache
+            const engines = this.engines
 
             // support callback function as second arg
             if (typeof options === 'function') {
-                done = options
-                opts = {}
+                callback = options
+                options = {}
             }
+
+            const renderOptions = {}
 
             // merge app.locals
             Object.assign(renderOptions, this.locals)
 
             // merge options._locals
-            if (opts._locals) {
-                Object.assign(renderOptions, opts._locals)
+            if (options._locals) {
+                Object.assign(renderOptions, options._locals)
             }
 
             // merge options
-            Object.assign(renderOptions, opts)
+            Object.assign(renderOptions, options)
 
             // set .cache unless explicitly provided
-            if (renderOptions.cache == null) {
+            if (!renderOptions.cache) {
                 renderOptions.cache = this.enabled('view cache')
             }
+
+            let view
 
             // primed cache
             if (renderOptions.cache) {
@@ -582,7 +558,7 @@ export default function createApplicationPrototype() {
 
             // view
             if (!view) {
-                var View = this.get('view')
+                const View = this.get('view') || View
 
                 view = new View(name, {
                     defaultEngine: this.get('view engine'),
@@ -591,19 +567,19 @@ export default function createApplicationPrototype() {
                 })
 
                 if (!view.path) {
-                    var dirs =
-                        Array.isArray(view.root) && view.root.length > 1
-                            ? 'directories "' +
-                              view.root.slice(0, -1).join('", "') +
-                              '" or "' +
-                              view.root[view.root.length - 1] +
-                              '"'
-                            : 'directory "' + view.root + '"'
-                    var err = new Error(
-                        'Failed to lookup view "' + name + '" in views ' + dirs
+                    let dirs
+                    if (Array.isArray(view.root) && view.root.length > 1) {
+                        const others = view.root.slice(0, -1).join('", "')
+                        const last = view.root.slice(-1)
+                        dirs = `directories "${others}" or "${last}"`
+                    } else {
+                        dirs = `directory "${view.root}"`
+                    }
+                    const err = new Error(
+                        `Failed to lookup view "${name}" in views ${dirs}`
                     )
                     err.view = view
-                    return done(err)
+                    return callback(err)
                 }
 
                 // prime the cache
@@ -614,9 +590,9 @@ export default function createApplicationPrototype() {
 
             // Try rendering a view.
             try {
-                view.render(renderOptions, done)
+                return view.render(renderOptions, callback)
             } catch (err) {
-                done(err)
+                callback(err)
             }
         },
 
@@ -629,19 +605,20 @@ export default function createApplicationPrototype() {
          * and HTTPS server you may do so with the "http"
          * and "https" modules as shown here:
          *
-         *    var http = require('http')
-         *      , https = require('https')
-         *      , express = require('express')
-         *      , app = express();
+         *    const http = require('http')
+         *    const https = require('https')
+         *    const express = require('express')
+         *    const app = express()
          *
-         *    http.createServer(app).listen(80);
-         *    https.createServer({ ... }, app).listen(443);
+         *    app.listen(8080) // => http.Server
+         *    http.createServer(app).listen(80)
+         *    https.createServer({ ... }, app).listen(443)
          *
          * @return {http.Server}
          */
-        listen() {
-            var server = http.createServer(this.handle.bind(this))
-            return server.listen.apply(server, arguments)
+        listen(...args) {
+            const server = http.createServer(this.handle.bind(this))
+            return server.listen(...args)
         },
     }
 }

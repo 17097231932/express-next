@@ -13,8 +13,6 @@ importers:
       content-type: ^1.0.4
       cookie: ^0.5.0
       cookie-signature: ^1.2.0
-      debug: ^4.3.4
-      depd: ^2.0.0
       ejs: ^3.1.8
       escape-html: ^1.0.3
       etag: ^1.8.1
@@ -28,7 +26,7 @@ importers:
       proxy-addr: ^2.0.7
       qs: ^6.11.0
       range-parser: ^1.2.1
-      rollup: ^2.76.0
+      rollup: ^2.77.0
       safe-buffer: ^5.2.1
       send: ^0.18.0
       serve-static: ^1.15.0
@@ -42,8 +40,6 @@ importers:
       content-type: 1.0.4
       cookie: 0.5.0
       cookie-signature: 1.2.0
-      debug: 4.3.4
-      depd: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
       finalhandler: 1.2.0
@@ -61,13 +57,13 @@ importers:
       type-is: 1.6.18
       vary: 1.1.2
     devDependencies:
-      '@rollup/plugin-commonjs': 22.0.1_rollup@2.76.0
-      '@rollup/plugin-json': 4.1.0_rollup@2.76.0
-      '@rollup/plugin-node-resolve': 13.3.0_rollup@2.76.0
+      '@rollup/plugin-commonjs': 22.0.1_rollup@2.77.0
+      '@rollup/plugin-json': 4.1.0_rollup@2.77.0
+      '@rollup/plugin-node-resolve': 13.3.0_rollup@2.77.0
       ejs: 3.1.8
       hbs: 4.2.0
       prettier: 2.7.1
-      rollup: 2.76.0
+      rollup: 2.77.0
 
   examples:
     specifiers:
@@ -121,47 +117,47 @@ importers:
 
 packages:
 
-  /@rollup/plugin-commonjs/22.0.1_rollup@2.76.0:
+  /@rollup/plugin-commonjs/22.0.1_rollup@2.77.0:
     resolution: {integrity: sha512-dGfEZvdjDHObBiP5IvwTKMVeq/tBZGMBHZFMdIV1ClMM/YoWS34xrHFGfag9SN2ZtMgNZRFruqvxZQEa70O6nQ==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
       rollup: ^2.68.0
     dependencies:
-      '@rollup/pluginutils': 3.1.0_rollup@2.76.0
+      '@rollup/pluginutils': 3.1.0_rollup@2.77.0
       commondir: 1.0.1
       estree-walker: 2.0.2
       glob: 7.2.0
       is-reference: 1.2.1
       magic-string: 0.25.9
       resolve: 1.22.1
-      rollup: 2.76.0
+      rollup: 2.77.0
     dev: true
 
-  /@rollup/plugin-json/4.1.0_rollup@2.76.0:
+  /@rollup/plugin-json/4.1.0_rollup@2.77.0:
     resolution: {integrity: sha512-yfLbTdNS6amI/2OpmbiBoW12vngr5NW2jCJVZSBEz+H5KfUJZ2M7sDjk0U6GOOdCWFVScShte29o9NezJ53TPw==}
     peerDependencies:
       rollup: ^1.20.0 || ^2.0.0
     dependencies:
-      '@rollup/pluginutils': 3.1.0_rollup@2.76.0
-      rollup: 2.76.0
+      '@rollup/pluginutils': 3.1.0_rollup@2.77.0
+      rollup: 2.77.0
     dev: true
 
-  /@rollup/plugin-node-resolve/13.3.0_rollup@2.76.0:
+  /@rollup/plugin-node-resolve/13.3.0_rollup@2.77.0:
     resolution: {integrity: sha512-Lus8rbUo1eEcnS4yTFKLZrVumLPY+YayBdWXgFSHYhTT2iJbMhoaaBL3xl5NCdeRytErGr8tZ0L71BMRmnlwSw==}
     engines: {node: '>= 10.0.0'}
     peerDependencies:
       rollup: ^2.42.0
     dependencies:
-      '@rollup/pluginutils': 3.1.0_rollup@2.76.0
+      '@rollup/pluginutils': 3.1.0_rollup@2.77.0
       '@types/resolve': 1.17.1
       deepmerge: 4.2.2
       is-builtin-module: 3.1.0
       is-module: 1.0.0
       resolve: 1.22.1
-      rollup: 2.76.0
+      rollup: 2.77.0
     dev: true
 
-  /@rollup/pluginutils/3.1.0_rollup@2.76.0:
+  /@rollup/pluginutils/3.1.0_rollup@2.77.0:
     resolution: {integrity: sha512-GksZ6pr6TpIjHm8h9lSQ8pi8BE9VeubNT0OMJ3B5uZJ8pz73NPiqOtCog/x2/QzM1ENChPKxMDhiQuRHsqc+lg==}
     engines: {node: '>= 8.0.0'}
     peerDependencies:
@@ -170,7 +166,7 @@ packages:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
-      rollup: 2.76.0
+      rollup: 2.77.0
     dev: true
 
   /@types/estree/0.0.39:
@@ -1271,8 +1267,8 @@ packages:
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
     dev: false
 
-  /rollup/2.76.0:
-    resolution: {integrity: sha512-9jwRIEY1jOzKLj3nsY/yot41r19ITdQrhs+q3ggNWhr9TQgduHqANvPpS32RNpzGklJu3G1AJfvlZLi/6wFgWA==}
+  /rollup/2.77.0:
+    resolution: {integrity: sha512-vL8xjY4yOQEw79DvyXLijhnhh+R/O9zpF/LEgkCebZFtb6ELeN9H3/2T0r8+mp+fFTBHZ5qGpOpW2ela2zRt3g==}
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:

@@ -1,4 +1,4 @@
-var bundle = require('./dist/express.cjs')
+var bundle = require('./dist/express.cjs-bundle.js')
 
 module.exports = bundle['default']
 
