@@ -1,11 +1,11 @@
-import express from 'express'
-import { readdir, stat } from 'fs/promises'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
 import cluster from 'cluster'
-import process from 'process'
+import { createApp } from 'express'
+import { readdir, stat } from 'fs/promises'
 import net from 'net'
+import { dirname, join } from 'path'
+import process from 'process'
 import { install } from 'source-map-support'
+import { fileURLToPath } from 'url'
 
 install()
 
@@ -126,7 +126,7 @@ function getFreePort() {
             server.close()
             resolve(port)
         })
-        server.on('error', (err) => {
+        server.on('error', err => {
             if (err.code == 'EADDRINUSE') {
                 getFreePort()
             } else {
@@ -195,7 +195,7 @@ if (cluster.isWorker) {
 } else {
     const exampleDirectory = dirname(fileURLToPath(import.meta.url))
 
-    const app = express()
+    const app = createApp()
 
     app.get('/', (req, res) => {
         res.end(indexHtmlContent)

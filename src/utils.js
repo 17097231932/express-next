@@ -11,7 +11,7 @@ export const getLogger =
     namespace =>
     (...args) => {
         if (process.env.EXPRESS_DEBUG) {
-            console.log(format('%s:%s', namespace, format(...args)))
+            console.log(format('[%s] %s', namespace, format(...args)))
         }
     }
 

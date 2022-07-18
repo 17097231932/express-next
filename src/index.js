@@ -31,4 +31,4 @@ export { default as static } from 'serve-static'
 export { default as query } from './middleware/query'
 export { default as Router } from './router'
 export { default as Route } from './router/route'
-export { application, request, response }
+export { createApplication as createApp, application, request, response }

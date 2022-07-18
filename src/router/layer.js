@@ -10,7 +10,7 @@ const debug = getLogger('express:router:layer')
  * @return {string}
  */
 function decode_param(val) {
-    if (typeof val !== 'string' || val.length === 0) {
+    if (typeof val !== 'string' || !val) {
         return val
     }
 
@@ -29,17 +29,19 @@ function decode_param(val) {
 export default class Layer {
     constructor(path, options, fn) {
         debug('new %o', path)
-        var opts = options || {}
 
         this.handle = fn
         this.name = fn.name || '<anonymous>'
         this.params = undefined
         this.path = undefined
-        this.regexp = pathRegexp(path, (this.keys = []), opts)
+        const keys = []
+        // this function will change keys array
+        this.regexp = pathRegexp(path, keys, options)
+        this.keys = keys
 
         // set fast path flags
-        this.regexp.fast_star = path === '*'
-        this.regexp.fast_slash = path === '/' && opts.end === false
+        this.fast_star = path === '*'
+        this.fast_slash = path === '/' && options.end === false
     }
 
     /**
@@ -52,7 +54,7 @@ export default class Layer {
      */
 
     handle_error(error, req, res, next) {
-        var fn = this.handle
+        const fn = this.handle
 
         if (fn.length !== 4) {
             // not a standard error handler
@@ -74,7 +76,7 @@ export default class Layer {
      * @param {function} next
      */
     handle_request(req, res, next) {
-        var fn = this.handle
+        const fn = this.handle
 
         if (fn.length > 3) {
             // not a standard request handler
@@ -92,24 +94,25 @@ export default class Layer {
      * Check if this route matches `path`, if so
      * populate `.params`.
      *
-     * @param {String} path
-     * @return {Boolean}
+     * @param {string} path
+     * @return {boolean}
      */
 
     match(path) {
-        var match
+        let match
+
+        this.params = {}
 
         if (path != null) {
             // fast path non-ending match for / (any path matches)
-            if (this.regexp.fast_slash) {
-                this.params = {}
+            if (this.fast_slash) {
                 this.path = ''
                 return true
             }
 
             // fast path for * (everything matched in a param)
-            if (this.regexp.fast_star) {
-                this.params = { 0: decode_param(path) }
+            if (this.fast_star) {
+                this.params[0] = decode_param(path)
                 this.path = path
                 return true
             }
@@ -125,16 +128,14 @@ export default class Layer {
         }
 
         // store values
-        this.params = {}
         this.path = match[0]
 
-        var keys = this.keys
-        var params = this.params
+        const params = this.params
 
         for (var i = 1; i < match.length; i++) {
-            var key = keys[i - 1]
-            var prop = key.name
-            var val = decode_param(match[i])
+            const key = this.keys[i - 1]
+            const prop = key.name
+            const val = decode_param(match[i])
 
             if (
                 val !== undefined ||

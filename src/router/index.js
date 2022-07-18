@@ -9,12 +9,7 @@ const debug = getLogger('express:router')
  * append methods to a list of methods
  */
 function appendMethods(list, addition) {
-    for (var i = 0; i < addition.length; i++) {
-        var method = addition[i]
-        if (list.indexOf(method) === -1) {
-            list.push(method)
-        }
-    }
+    return [...new Set([...list, ...addition])]
 }
 
 /**
@@ -36,9 +31,9 @@ function getProtohost(url) {
         return undefined
     }
 
-    var searchIndex = url.indexOf('?')
-    var pathLength = searchIndex !== -1 ? searchIndex : url.length
-    var fqdnIndex = url.slice(0, pathLength).indexOf('://')
+    const searchIndex = url.indexOf('?')
+    const pathLength = searchIndex !== -1 ? searchIndex : url.length
+    const fqdnIndex = url.slice(0, pathLength).indexOf('://')
 
     return fqdnIndex !== -1
         ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
@@ -49,10 +44,8 @@ function getProtohost(url) {
  * get type for error message
  */
 function gettype(obj) {
-    var type = typeof obj
-
-    if (type !== 'object') {
-        return type
+    if (typeof obj !== 'object') {
+        return typeof obj
     }
 
     // inspect [[Class]] for objects
@@ -84,7 +77,7 @@ function mergeParams(params, parent) {
     }
 
     // make copy of parent for base
-    var obj = { ...parent }
+    const obj = { ...parent }
 
     // simple non-numeric merging
     if (!(0 in params) || !(0 in parent)) {
@@ -120,7 +113,7 @@ function mergeParams(params, parent) {
  * restore obj props after function
  */
 function restore(fn, obj) {
-    var props = new Array(arguments.length - 2)
+    const props = new Array(arguments.length - 2)
     var vals = new Array(arguments.length - 2)
 
     for (var i = 0; i < props.length; i++) {
@@ -143,7 +136,7 @@ function restore(fn, obj) {
  */
 function sendOptionsResponse(res, options, next) {
     try {
-        var body = options.join(',')
+        const body = options.join(',')
         res.set('Allow', body)
         res.send(body)
     } catch (err) {
@@ -225,31 +218,33 @@ const proto = {
         }
 
         if (name[0] === ':') {
-            deprecate(
-                'router.param(' +
-                    JSON.stringify(name) +
-                    ', fn): Use router.param(' +
-                    JSON.stringify(name.slice(1)) +
-                    ', fn) instead'
-            )
+            const depdName = name
             name = name.slice(1)
+            deprecate(
+                `router.param('${depdName}', fn): Use router.param('${name}', fn) instead`
+            )
         }
 
         // apply param functions
-        this._params.forEach(param => {
-            let ret
-            if ((ret = param(name, fn))) {
+        for (const param of this._params) {
+            let ret = param(name, fn)
+            if (ret) {
                 fn = ret
             }
-        })
-
-        // ensure we end up with a
-        // middleware function
-        if ('function' !== typeof fn) {
-            throw new Error('invalid param() call for ' + name + ', got ' + fn)
         }
 
-        ;(this.params[name] = this.params[name] || []).push(fn)
+        // ensure we end up with a middleware function
+        if (typeof fn !== 'function') {
+            throw new Error(`invalid param() call for ${name}, got ${fn}`)
+        }
+
+        // init
+        if (!this.params[name]) {
+            this.params[name] = []
+        }
+
+        this.params[name].push(fn)
+
         return this
     },
 
@@ -411,11 +406,14 @@ const proto = {
                 }
 
                 var method = req.method
-                var has_method = route._handles_method(method)
+                var has_method = route._can_handle(method)
 
                 // build up automatic options response
                 if (!has_method && method === 'OPTIONS') {
-                    appendMethods(options, route._options())
+                    options = appendMethods(
+                        options,
+                        route._handleable_method()
+                    )
                 }
 
                 // don't even bother matching route
@@ -560,37 +558,36 @@ const proto = {
      * pathname.
      *
      */
-    use(fn) {
-        var offset = 0
-        var path = '/'
+    use(...args) {
+        let path
 
-        // default path to '/'
-        // disambiguate router.use([fn])
-        if (typeof fn !== 'function') {
-            var arg = fn
+        if (Array.isArray(args[0])) {
+            let arg0 = args[0]
 
-            while (Array.isArray(arg) && arg.length !== 0) {
-                arg = arg[0]
+            while (Array.isArray(arg0) && arg0.length) {
+                arg0 = arg0[0]
             }
 
-            // first arg is the path
-            if (typeof arg !== 'function') {
-                offset = 1
-                path = fn
+            if (typeof arg0 !== 'function') {
+                path = args.shift()
             }
         }
 
-        var callbacks = Array.prototype.slice
-            .call(arguments, offset)
-            .flat(Infinity)
+        const callbacks = args.flat(Infinity)
 
-        if (callbacks.length === 0) {
+        if (!path) {
+            if (typeof callbacks[0] !== 'function') {
+                path = callbacks.shift()
+            } else {
+                path = '/'
+            }
+        }
+
+        if (!callbacks.length) {
             throw new TypeError('Router.use() requires a middleware function')
         }
 
-        for (var i = 0; i < callbacks.length; i++) {
-            var fn = callbacks[i]
-
+        for (const fn of callbacks) {
             if (typeof fn !== 'function') {
                 throw new TypeError(
                     'Router.use() requires a middleware function but got a ' +
@@ -601,7 +598,7 @@ const proto = {
             // add the middleware
             debug('use %o %s', path, fn.name || '<anonymous>')
 
-            var layer = new Layer(
+            const layer = new Layer(
                 path,
                 {
                     sensitive: this.caseSensitive,
@@ -633,7 +630,7 @@ const proto = {
     route(path) {
         const route = new Route(path)
 
-        var layer = new Layer(
+        const layer = new Layer(
             path,
             {
                 sensitive: this.caseSensitive,
@@ -650,46 +647,37 @@ const proto = {
     },
 
     // create Router#VERB functions
-    get(path, ...middlewares) {
-        const route = this.route(path)
-        route.get.apply(route, middlewares)
+    _registerRouteHandler(method, path, middlewares) {
+        this.route(path)[method](...middlewares)
         return this
+    },
+
+    get(path, ...middlewares) {
+        return this._registerRouteHandler('get', path, middlewares)
     },
 
     post(path, ...middlewares) {
-        const route = this.route(path)
-        route.post.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('post', path, middlewares)
     },
 
     put(path, ...middlewares) {
-        const route = this.route(path)
-        route.put.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('put', path, middlewares)
     },
 
     head(path, ...middlewares) {
-        const route = this.route(path)
-        route.head.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('head', path, middlewares)
     },
 
     delete(path, ...middlewares) {
-        const route = this.route(path)
-        route.delete.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('delete', path, middlewares)
     },
 
     options(path, ...middlewares) {
-        const route = this.route(path)
-        route.options.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('options', path, middlewares)
     },
 
     all(path, ...middlewares) {
-        const route = this.route(path)
-        route.all.apply(route, middlewares)
-        return this
+        return this._registerRouteHandler('all', path, middlewares)
     },
 }
 
@@ -700,7 +688,7 @@ const proto = {
  * @return {Router} which is an callable function
  */
 
-export default function (options = {}) {
+export default function createRouter(options = {}) {
     function router(req, res, next) {
         router.handle(req, res, next)
     }

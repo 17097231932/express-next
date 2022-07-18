@@ -8,7 +8,6 @@ export default class Route {
      * Initialize `Route` with the given `path`,
      *
      * @param {String} path
-     * @public
      */
     constructor(path) {
         this.path = path
@@ -24,54 +23,50 @@ export default class Route {
      * Determine if the route handles a given method.
      */
 
-    _handles_method(method) {
+    _can_handle(method) {
         if (this.methods._all) {
             return true
         }
 
-        var name = method.toLowerCase()
+        let name = method.toLowerCase()
 
         if (name === 'head' && !this.methods['head']) {
             name = 'get'
         }
 
-        return Boolean(this.methods[name])
+        return !!this.methods[name]
     }
 
     /**
      * @return {Array} supported HTTP methods
      */
 
-    _options() {
-        var methods = Object.keys(this.methods)
+    _handleable_method() {
+        const methods = Object.keys(this.methods)
 
         // append automatic head
-        if (this.methods.get && !this.methods.head) {
+        if (methods.includes('get') && !methods.includes('head')) {
             methods.push('head')
         }
 
-        for (var i = 0; i < methods.length; i++) {
-            // make upper case
-            methods[i] = methods[i].toUpperCase()
-        }
-
-        return methods
+        // make upper case
+        return methods.map(v => v.toUpperCase())
     }
 
     /**
      * dispatch req, res into this route
      */
 
-    dispatch(req, res, done) {
-        var idx = 0
-        var stack = this.stack
-        var sync = 0
+    dispatch(req, res, callback) {
+        let index = 0
+        const stack = this.stack
+        let sync = 0
 
         if (stack.length === 0) {
-            return done()
+            return callback()
         }
 
-        var method = req.method.toLowerCase()
+        let method = req.method.toLowerCase()
         if (method === 'head' && !this.methods['head']) {
             method = 'get'
         }
@@ -83,12 +78,12 @@ export default class Route {
         function next(err) {
             // signal to exit route
             if (err && err === 'route') {
-                return done()
+                return callback()
             }
 
             // signal to exit router
             if (err && err === 'router') {
-                return done(err)
+                return callback(err)
             }
 
             // max sync stack
@@ -96,11 +91,11 @@ export default class Route {
                 return setImmediate(next, err)
             }
 
-            var layer = stack[idx++]
+            const layer = stack[index++]
 
             // end of layers
             if (!layer) {
-                return done(err)
+                return callback(err)
             }
 
             if (layer.method && layer.method !== method) {
@@ -142,21 +137,16 @@ export default class Route {
      * @return {Route} for chaining
      */
 
-    all() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
+    all(...handles) {
+        for (const handle of handles.flat(Infinity)) {
             if (typeof handle !== 'function') {
-                var type = Object.prototype.toString.call(handle)
-                var msg =
-                    'Route.all() requires a callback function but got a ' +
-                    type
-                throw new TypeError(msg)
+                const type = Object.prototype.toString.call(handle)
+                throw new TypeError(
+                    `Route.all() requires a callback function but got a ${type}`
+                )
             }
 
-            var layer = new Layer('/', {}, handle)
+            const layer = new Layer('/', {}, handle)
             layer.method = undefined
 
             this.methods._all = true
@@ -168,153 +158,48 @@ export default class Route {
 
     // create Route#VERB functions
 
-    get() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
+    _registerRouteHandler(method, handles) {
+        for (const handle of handles.flat(Infinity)) {
             if (typeof handle !== 'function') {
+                const type = Object.prototype.toString.call(handle)
                 throw new Error(
-                    'Route.get() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
+                    `Route.${method}() requires a callback function but got a ${type}`
                 )
             }
 
-            debug('get %o', this.path)
+            debug('%s %o', method, this.path)
 
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'get'
+            const layer = new Layer('/', {}, handle)
+            layer.method = method
 
-            this.methods.get = true
+            this.methods[method] = true
             this.stack.push(layer)
         }
 
         return this
     }
 
-    post() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
-            if (typeof handle !== 'function') {
-                throw new Error(
-                    'Route.post() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
-                )
-            }
-
-            debug('post %o', this.path)
-
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'post'
-
-            this.methods.post = true
-            this.stack.push(layer)
-        }
-
-        return this
+    get(...handles) {
+        return this._registerRouteHandler('get', handles)
     }
 
-    put() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
-            if (typeof handle !== 'function') {
-                throw new Error(
-                    'Route.put() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
-                )
-            }
-
-            debug('put %o', this.path)
-
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'put'
-
-            this.methods.put = true
-            this.stack.push(layer)
-        }
-
-        return this
+    post(...handles) {
+        return this._registerRouteHandler('post', handles)
     }
 
-    head() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
-            if (typeof handle !== 'function') {
-                throw new Error(
-                    'Route.head() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
-                )
-            }
-
-            debug('head %o', this.path)
-
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'head'
-
-            this.methods.head = true
-            this.stack.push(layer)
-        }
-
-        return this
+    put(...handles) {
+        return this._registerRouteHandler('put', handles)
     }
 
-    delete() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
-
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
-            if (typeof handle !== 'function') {
-                throw new Error(
-                    'Route.delete() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
-                )
-            }
-
-            debug('delete %o', this.path)
-
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'delete'
-
-            this.methods.delete = true
-            this.stack.push(layer)
-        }
-
-        return this
+    head(...handles) {
+        return this._registerRouteHandler('head', handles)
     }
 
-    options() {
-        var handles = Array.prototype.slice.call(arguments).flat(Infinity)
+    delete(...handles) {
+        return this._registerRouteHandler('delete', handles)
+    }
 
-        for (var i = 0; i < handles.length; i++) {
-            var handle = handles[i]
-
-            if (typeof handle !== 'function') {
-                throw new Error(
-                    'Route.options() requires a callback function but got a ' +
-                        Object.prototype.toString.call(handle)
-                )
-            }
-
-            debug('options %o', this.path)
-
-            var layer = new Layer('/', {}, handle)
-            layer.method = 'options'
-
-            this.methods.options = true
-            this.stack.push(layer)
-        }
-
-        return this
+    options(...handles) {
+        return this._registerRouteHandler('options', handles)
     }
 }

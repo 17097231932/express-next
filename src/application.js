@@ -309,6 +309,7 @@ export default function createApplicationPrototype() {
 
             if (Array.isArray(args[0])) {
                 let arg0 = args[0]
+
                 while (Array.isArray(arg0) && arg0.length) {
                     arg0 = arg0[0]
                 }
@@ -397,7 +398,7 @@ export default function createApplicationPrototype() {
             return this
         },
 
-        // Delegate `.VERB(...)` calls to `router.VERB(...)`.
+        // Delegate `.VERB(...)` calls to `route.VERB(...)`.
         _registerRouteHandler(method, path, fns) {
             this.getRouter()
                 .route(path)
@@ -444,13 +445,7 @@ export default function createApplicationPrototype() {
          * @return {app} for chaining
          */
         all(path, ...fns) {
-            const route = this.getRouter().route(path)
-
-            for (const method of methods) {
-                route[method](...fns)
-            }
-
-            return this
+            return this._registerRouteHandler('all', path, fns)
         },
 
         // del -> delete alias

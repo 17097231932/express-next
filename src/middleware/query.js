@@ -7,23 +7,22 @@ import qs from 'qs'
  */
 
 export default function query(options) {
-    var opts = Object.assign({}, options)
-    var queryparse = qs.parse
+    let parseFn = qs.parse
 
     if (typeof options === 'function') {
-        queryparse = options
-        opts = undefined
+        parseFn = options
+        options = undefined
     }
 
-    if (opts !== undefined && opts.allowPrototypes === undefined) {
+    if (options !== undefined && options.allowPrototypes === undefined) {
         // back-compat for qs module
-        opts.allowPrototypes = true
+        options.allowPrototypes = true
     }
 
     return function query(req, res, next) {
         if (!req.query) {
-            var val = parse(req.url).query
-            req.query = queryparse(val, opts)
+            const val = parse(req.url).query
+            req.query = parseFn(val, options)
         }
 
         next()
