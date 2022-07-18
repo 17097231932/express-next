@@ -11,7 +11,7 @@ import {
     compileTrust,
     deprecate,
     getLogger,
-    methods,
+    hasOwnProperty,
 } from './utils'
 import View from './view'
 
@@ -137,7 +137,7 @@ export default function createApplicationPrototype() {
                 let settings = this.settings
 
                 while (settings && settings !== Object.prototype) {
-                    if (Object.prototype.hasOwnProperty.call(settings, key)) {
+                    if (hasOwnProperty(settings, key)) {
                         return settings[key]
                     }
 

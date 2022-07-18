@@ -6,7 +6,7 @@ import proxyaddr, { all } from 'proxy-addr'
 import parseRange from 'range-parser'
 import typeis from 'type-is'
 import { parse } from 'url'
-import { deprecate } from './utils'
+import { deprecate, hasOwnProperty } from './utils'
 
 const request = {
     /**
@@ -41,7 +41,7 @@ const request = {
             throw new TypeError('name must be a string to req.get')
         }
 
-        var lc = name.toLowerCase()
+        const lc = name.toLowerCase()
 
         switch (lc) {
             case 'referer':
@@ -203,14 +203,23 @@ const request = {
     param(name, defaultValue) {
         deprecate('req.param: Use req.params, req.body, or req.query instead')
 
-        var params = this.params || {}
-        var body = this.body || {}
-        var query = this.query || {}
+        function exist(value) {
+            return value !== undefined && value !== null
+        }
 
-        if (null != params[name] && params.hasOwnProperty(name))
+        const params = this.params || {}
+        const body = this.body || {}
+        const query = this.query || {}
+
+        if (exist(params[name]) && hasOwnProperty(params, name)) {
             return params[name]
-        if (null != body[name]) return body[name]
-        if (null != query[name]) return query[name]
+        }
+        if (exist(body[name])) {
+            return body[name]
+        }
+        if (exist(query[name])) {
+            return query[name]
+        }
 
         return defaultValue
     },
@@ -240,18 +249,11 @@ const request = {
      * @return {String|false|null}
      */
 
-    is(types) {
-        var arr = types
-
-        // support flattened arguments
-        if (!Array.isArray(types)) {
-            arr = new Array(arguments.length)
-            for (var i = 0; i < arr.length; i++) {
-                arr[i] = arguments[i]
-            }
+    is(...types) {
+        if (Array.isArray(types[0])) {
+            return typeis(this, types[0])
         }
-
-        return typeis(this, arr)
+        return typeis(this, types)
     },
 
     /**
@@ -268,8 +270,8 @@ const request = {
      */
 
     get protocol() {
-        var proto = this.connection.encrypted ? 'https' : 'http'
-        var trust = this.app.get('trust proxy fn')
+        const proto = this.connection.encrypted ? 'https' : 'http'
+        const trust = this.app.get('trust proxy fn')
 
         if (!trust(this.connection.remoteAddress, 0)) {
             return proto
@@ -277,8 +279,8 @@ const request = {
 
         // Note: X-Forwarded-Proto is normally only ever a
         //       single value, but this is to be safe.
-        var header = this.get('X-Forwarded-Proto') || proto
-        var index = header.indexOf(',')
+        const header = this.get('X-Forwarded-Proto') || proto
+        const index = header.indexOf(',')
 
         return index !== -1 ? header.substring(0, index).trim() : header.trim()
     },
@@ -305,7 +307,7 @@ const request = {
      */
 
     get ip() {
-        var trust = this.app.get('trust proxy fn')
+        const trust = this.app.get('trust proxy fn')
         return proxyaddr(this, trust)
     },
 
@@ -321,8 +323,8 @@ const request = {
      */
 
     get ips() {
-        var trust = this.app.get('trust proxy fn')
-        var addrs = all(this, trust)
+        const trust = this.app.get('trust proxy fn')
+        const addrs = all(this, trust)
 
         // reverse the order (to farthest -> closest)
         // and remove socket address
@@ -345,12 +347,12 @@ const request = {
      * @return {Array}
      */
     get subdomains() {
-        var hostname = this.hostname
+        const hostname = this.hostname
 
         if (!hostname) return []
 
-        var offset = this.app.get('subdomain offset')
-        var subdomains = !isIP(hostname)
+        const offset = this.app.get('subdomain offset')
+        const subdomains = !isIP(hostname)
             ? hostname.split('.').reverse()
             : [hostname]
 
@@ -377,22 +379,22 @@ const request = {
      */
 
     get hostname() {
-        var trust = this.app.get('trust proxy fn')
-        var host = this.get('X-Forwarded-Host')
+        const trust = this.app.get('trust proxy fn')
+        let host = this.get('X-Forwarded-Host')
 
         if (!host || !trust(this.connection.remoteAddress, 0)) {
             host = this.get('Host')
         } else if (host.indexOf(',') !== -1) {
             // Note: X-Forwarded-Host is normally only ever a
             //       single value, but this is to be safe.
-            host = host.substring(0, host.indexOf(',')).trimRight()
+            host = host.substring(0, host.indexOf(',')).trimEnd()
         }
 
         if (!host) return
 
         // IPv6 literal support
-        var offset = host[0] === '[' ? host.indexOf(']') + 1 : 0
-        var index = host.indexOf(':', offset)
+        const offset = host[0] === '[' ? host.indexOf(']') + 1 : 0
+        const index = host.indexOf(':', offset)
 
         return index !== -1 ? host.substring(0, index) : host
     },
@@ -413,12 +415,11 @@ const request = {
      */
 
     get fresh() {
-        var method = this.method
-        var res = this.res
-        var status = res.statusCode
+        const res = this.res
+        const status = res.statusCode
 
         // GET or HEAD for weak freshness validation only
-        if ('GET' !== method && 'HEAD' !== method) return false
+        if (!['GET', 'HEAD'].includes(this.method)) return false
 
         // 2xx or 304 as per rfc2616 14.26
         if ((status >= 200 && status < 300) || 304 === status) {
@@ -450,7 +451,7 @@ const request = {
      */
 
     get xhr() {
-        var val = this.get('X-Requested-With') || ''
+        const val = this.get('X-Requested-With') || ''
         return val.toLowerCase() === 'xmlhttprequest'
     },
 }

@@ -1,3 +1,5 @@
+'use strict'
+
 var bundle = require('./dist/express.cjs-bundle.js')
 
 module.exports = bundle['default']

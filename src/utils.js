@@ -30,6 +30,10 @@ export const deprecate = msg => {
 
 export const methods = ['get', 'post', 'put', 'head', 'delete', 'options']
 
+export const hasOwnProperty = Object.prototype.hasOwnProperty.call.bind(
+    Object.prototype.hasOwnProperty
+)
+
 /**
  * Check if `path` looks absolute.
  *

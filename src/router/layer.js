@@ -1,5 +1,5 @@
 import pathRegexp from 'path-to-regexp'
-import { getLogger } from '../utils'
+import { getLogger, hasOwnProperty } from '../utils'
 
 const debug = getLogger('express:router:layer')
 
@@ -137,10 +137,7 @@ export default class Layer {
             const prop = key.name
             const val = decode_param(match[i])
 
-            if (
-                val !== undefined ||
-                !Object.prototype.hasOwnProperty.call(params, prop)
-            ) {
+            if (val !== undefined || !hasOwnProperty(params, prop)) {
                 params[prop] = val
             }
         }
