@@ -2,7 +2,6 @@ import contentDisposition from 'content-disposition'
 import { serialize } from 'cookie'
 import { sign } from 'cookie-signature'
 import escapeHtml from 'escape-html'
-import { ServerResponse } from 'http'
 import createError from 'http-errors'
 import onFinished from 'on-finished'
 import { extname, resolve } from 'path'
@@ -12,6 +11,7 @@ import { message } from 'statuses'
 import vary from 'vary'
 import {
     deprecate,
+    encodeurl,
     isAbsolute,
     normalizeType,
     normalizeTypes,
@@ -59,7 +59,7 @@ function stringify(value, replacer, spaces, escape) {
 // pipe the send file stream
 function sendfile(res, file, options, callback) {
     let done = false
-    var streaming
+    let streaming
 
     // errors
     file.on('error', err => {
@@ -73,7 +73,7 @@ function sendfile(res, file, options, callback) {
         if (done) return
         done = true
 
-        var err = new Error('EISDIR, read')
+        const err = new Error('EISDIR, read')
         err.code = 'EISDIR'
         callback(err)
     })
@@ -100,7 +100,7 @@ function sendfile(res, file, options, callback) {
         if (done) return
         done = true
 
-        var err = new Error('Request aborted')
+        const err = new Error('Request aborted')
         err.code = 'ECONNABORTED'
         callback(err)
     }
@@ -116,7 +116,7 @@ function sendfile(res, file, options, callback) {
             callback(err)
         }
 
-        setImmediate(function () {
+        setImmediate(() => {
             if (streaming !== false && !done) {
                 onaborted()
                 return
@@ -141,7 +141,59 @@ function sendfile(res, file, options, callback) {
     file.pipe(res)
 }
 
-const response = {
+export default class Response {
+    /**
+     *
+     * @param {ServerResponse} res
+     * @param {Application} app
+     */
+    constructor(res, app) {
+        /**
+         * @type {import('http').ServerResponse}
+         */
+        this.originalResponse = res
+        /**
+         * @type {Application}
+         */
+        this.app = app
+
+        this._wrapedResponseCache = null
+    }
+
+    get _wrapedResponse() {
+        if (this._wrapedResponseCache === null) {
+            const instance = this
+            this._wrapedResponseCache = new Proxy(this.originalResponse, {
+                get(target, p) {
+                    if (Reflect.has(instance, p)) {
+                        return Reflect.get(instance, p)
+                    }
+                    const fn = Reflect.get(target, p)
+                    if (typeof fn !== 'function') return fn
+                    return fn.bind(target)
+                },
+                set(target, p, value) {
+                    if (Reflect.has(target, p)) {
+                        return Reflect.set(target, p, value)
+                    }
+                    return Reflect.set(instance, p, value)
+                },
+            })
+        }
+
+        return this._wrapedResponseCache
+    }
+
+    /**
+     * Create a Response object.
+     * @param {import('http').ServerResponse} serverResponse
+     * @param {Application} app
+     * @returns {Response}
+     */
+    static fromServerResponse(serverResponse, app) {
+        return new this(serverResponse, app)._wrapedResponse
+    }
+
     /**
      * Set status `code`.
      *
@@ -164,10 +216,10 @@ const response = {
             code = Math.floor(code)
         }
 
-        this.statusCode = code
+        this.originalResponse.statusCode = code
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Set Link header field with the given `links`.
@@ -195,7 +247,7 @@ const response = {
                     })
                     .join(', ')
         )
-    },
+    }
 
     /**
      * Send a response.
@@ -218,12 +270,12 @@ const response = {
                 deprecate(
                     'res.send(body, status): Use res.status(status).send(body) instead'
                 )
-                this.statusCode = depd_arg
+                this.originalResponse.statusCode = depd_arg
             } else {
                 deprecate(
                     'res.send(status, body): Use res.status(status).send(body) instead'
                 )
-                this.statusCode = body
+                this.originalResponse.statusCode = body
                 body = depd_arg
             }
         }
@@ -236,7 +288,7 @@ const response = {
             }
 
             deprecate('res.send(status): Use res.sendStatus(status) instead')
-            this.statusCode = body
+            this.originalResponse.statusCode = body
             body = message[body]
         }
 
@@ -244,7 +296,7 @@ const response = {
             // string defaulting to html
             case 'string':
                 if (!this.get('Content-Type')) {
-                    this.type('html')
+                    this.contentType('html')
                 }
                 break
             case 'boolean':
@@ -254,7 +306,7 @@ const response = {
                     body = ''
                 } else if (Buffer.isBuffer(body)) {
                     if (!this.get('Content-Type')) {
-                        this.type('bin')
+                        this.contentType('bin')
                     }
                 } else {
                     return this.json(body)
@@ -309,33 +361,33 @@ const response = {
         }
 
         // freshness
-        if (this.req.fresh) this.statusCode = 304
+        if (this.req.fresh) this.originalResponse.statusCode = 304
 
         // strip irrelevant headers
-        if ([204, 304].includes(this.statusCode)) {
-            this.removeHeader('Content-Type')
-            this.removeHeader('Content-Length')
-            this.removeHeader('Transfer-Encoding')
+        if ([204, 304].includes(this.originalResponse.statusCode)) {
+            this.originalResponse.removeHeader('Content-Type')
+            this.originalResponse.removeHeader('Content-Length')
+            this.originalResponse.removeHeader('Transfer-Encoding')
             body = ''
         }
 
         // alter headers for 205
-        if (this.statusCode === 205) {
+        if (this.originalResponse.statusCode === 205) {
             this.set('Content-Length', '0')
-            this.removeHeader('Transfer-Encoding')
+            this.originalResponse.removeHeader('Transfer-Encoding')
             body = ''
         }
 
         if (this.req.method === 'HEAD') {
             // skip body for HEAD
-            this.end()
+            this.originalResponse.end()
         } else {
             // respond
-            this.end(body, encoding)
+            this.originalResponse.end(body, encoding)
         }
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Send JSON response.
@@ -357,12 +409,12 @@ const response = {
                 deprecate(
                     'res.json(obj, status): Use res.status(status).json(obj) instead'
                 )
-                this.statusCode = depd_arg
+                this.originalResponse.statusCode = depd_arg
             } else {
                 deprecate(
                     'res.json(status, obj): Use res.status(status).json(obj) instead'
                 )
-                this.statusCode = obj
+                this.originalResponse.statusCode = obj
                 obj = depd_arg
             }
         }
@@ -379,7 +431,7 @@ const response = {
         }
 
         return this.send(body)
-    },
+    }
 
     /**
      * Send JSON response with JSONP callback support.
@@ -400,12 +452,12 @@ const response = {
                 deprecate(
                     'res.jsonp(obj, status): Use res.status(status).jsonp(obj) instead'
                 )
-                this.statusCode = depd_arg
+                this.originalResponse.statusCode = depd_arg
             } else {
                 deprecate(
                     'res.jsonp(status, obj): Use res.status(status).jsonp(obj) instead'
                 )
-                this.statusCode = obj
+                this.originalResponse.statusCode = obj
                 obj = depd_arg
             }
         }
@@ -452,7 +504,7 @@ const response = {
         }
 
         return this.send(body)
-    },
+    }
 
     /**
      * Send given HTTP status code.
@@ -469,13 +521,13 @@ const response = {
      */
 
     sendStatus(statusCode) {
-        var body = message[statusCode] || statusCode.toString()
+        const body = message[statusCode] || statusCode.toString()
 
-        this.statusCode = statusCode
-        this.type('txt')
+        this.originalResponse.statusCode = statusCode
+        this.contentType('txt')
 
         return this.send(body)
-    },
+    }
 
     /**
      * Transfer the file at the given `path`.
@@ -539,12 +591,12 @@ const response = {
 
         // create file stream
         const pathname = encodeURI(path)
-        const file = send(this.req, pathname, options)
+        const file = send(this.req.originalRequest, pathname, options)
 
-        const next = this.req.next
+        const next = this.next
 
         // transfer
-        sendfile(this, file, options, err => {
+        sendfile(this.originalResponse, file, options, err => {
             if (callback) {
                 // have custom callback
                 return callback(err)
@@ -563,7 +615,7 @@ const response = {
                 }
             }
         })
-    },
+    }
 
     /**
      * Transfer the file at the given `path`.
@@ -616,10 +668,10 @@ const response = {
         // create file stream
         const file = send(this.req, path, options)
 
-        const next = this.req.next
+        const next = this.next
 
         // transfer
-        sendfile(this, file, options, function (err) {
+        sendfile(this.originalResponse, file, options, err => {
             if (callback) {
                 // have custom callback
                 return callback(err)
@@ -636,7 +688,7 @@ const response = {
                 }
             }
         })
-    },
+    }
 
     /**
      * Transfer the file at the given `path` as an attachment.
@@ -708,7 +760,7 @@ const response = {
 
         // send file
         return this.sendFile(fullPath, opts, callback)
-    },
+    }
 
     /**
      * Set _Content-Type_ response header with `type` through `mime.lookup()`
@@ -730,11 +782,11 @@ const response = {
         const ct = !type.includes('/') ? mime.lookup(type) : type
 
         return this.set('Content-Type', ct)
-    },
+    }
 
     type(type) {
         return this.contentType(type)
-    },
+    }
 
     /**
      * Respond to the Acceptable formats using an `obj`
@@ -793,7 +845,7 @@ const response = {
      */
 
     format(obj) {
-        const next = this.req.next
+        const next = this.next
 
         const keys = Object.keys(obj).filter(v => v !== 'default')
 
@@ -803,19 +855,17 @@ const response = {
 
         if (key) {
             this.set('Content-Type', normalizeType(key).value)
-            obj[key](this.req, this, next)
+            obj[key](this.req, this._wrapedResponse, next)
         } else if (obj.default) {
-            obj.default(this.req, this, next)
+            obj.default(this.req, this._wrapedResponse, next)
         } else {
-            next(
-                createError(406, {
-                    types: normalizeTypes(keys).map(o => o.value),
-                })
-            )
+            throw createError(406, {
+                types: normalizeTypes(keys).map(o => o.value),
+            })
         }
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Set _Content-Disposition_ header to _attachment_ with optional `filename`.
@@ -831,8 +881,8 @@ const response = {
 
         this.set('Content-Disposition', contentDisposition(filename))
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Append additional header `field` with value `val`.
@@ -858,7 +908,7 @@ const response = {
         }
 
         return this.set(field, value)
-    },
+    }
 
     /**
      * Set header `field` to `val`, or pass
@@ -898,18 +948,18 @@ const response = {
             }
 
             // provided by ServerResponse
-            this.setHeader(field, value)
+            this.originalResponse.setHeader(field, value)
         } else {
             for (const [key, value] of Object.entries(field)) {
                 this.set(key, value)
             }
         }
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     set(...args) {
         return this.header(...args)
-    },
+    }
 
     /**
      * Get value for header `field`.
@@ -920,8 +970,8 @@ const response = {
 
     get(field) {
         // provided by ServerResponse
-        return this.getHeader(field)
-    },
+        return this.originalResponse.getHeader(field)
+    }
 
     /**
      * Clear cookie `name`.
@@ -939,7 +989,7 @@ const response = {
         }
 
         return this.cookie(name, '', opts)
-    },
+    }
 
     /**
      * Set cookie `name` to `value`, with the given `options`.
@@ -999,8 +1049,8 @@ const response = {
 
         this.append('Set-Cookie', serialize(name, val, opts))
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Set the location header to `url`.
@@ -1024,27 +1074,9 @@ const response = {
             url = this.req.get('Referrer') || '/'
         }
 
-        // RegExp to match non-URL code points, *after* encoding (i.e. not including "%") and including invalid escape sequences.
-        const ENCODE_CHARS_REGEXP =
-            /(?:[^\x21\x25\x26-\x3B\x3D\x3F-\x5B\x5D\x5F\x61-\x7A\x7E]|%(?:[^0-9A-Fa-f]|[0-9A-Fa-f][^0-9A-Fa-f]|$))+/g
-
-        // RegExp to match unmatched surrogate pair.
-        const UNMATCHED_SURROGATE_PAIR_REGEXP =
-            /(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]|[\uD800-\uDBFF]([^\uDC00-\uDFFF]|$)/g
-
-        // String to replace unmatched surrogate pair with.
-        const UNMATCHED_SURROGATE_PAIR_REPLACE = '$1\uFFFD$2'
-
-        url = url
-            .replace(
-                UNMATCHED_SURROGATE_PAIR_REGEXP,
-                UNMATCHED_SURROGATE_PAIR_REPLACE
-            )
-            .replace(ENCODE_CHARS_REGEXP, encodeURI)
-
         // set location
-        return this.set('Location', url)
-    },
+        return this.set('Location', encodeurl(url))
+    }
 
     /**
      * Redirect to the given `url` with optional response `status`
@@ -1100,15 +1132,15 @@ const response = {
         })
 
         // Respond
-        this.statusCode = status
+        this.originalResponse.statusCode = status
         this.set('Content-Length', Buffer.byteLength(body))
 
         if (this.req.method === 'HEAD') {
-            this.end()
+            this.originalResponse.end()
         } else {
-            this.end(body)
+            this.originalResponse.end(body)
         }
-    },
+    }
 
     /**
      * Add `field` to Vary. If already present in the Vary set, then
@@ -1122,13 +1154,13 @@ const response = {
         // checks for back-compat
         if (!field || (Array.isArray(field) && !field.length)) {
             deprecate('res.vary(): Provide a field name')
-            return this
+            return this._wrapedResponse
         }
 
-        vary(this, field)
+        vary(this.originalResponse, field)
 
-        return this
-    },
+        return this._wrapedResponse
+    }
 
     /**
      * Render `view` with the given `options` and optional callback `fn`.
@@ -1143,7 +1175,7 @@ const response = {
      */
 
     render(view, options = {}, callback) {
-        const app = this.req.app
+        const app = this.app
 
         // support callback function as second arg
         if (typeof options === 'function') {
@@ -1159,16 +1191,12 @@ const response = {
             callback ||
             ((err, str) => {
                 if (err) {
-                    return this.req.next(err)
+                    return this.next(err)
                 }
                 this.send(str)
             })
 
         // render
         app.render(view, options, callback)
-    },
+    }
 }
-
-Object.setPrototypeOf(response, ServerResponse.prototype)
-
-export default response

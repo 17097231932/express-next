@@ -132,7 +132,7 @@ export default class Layer {
 
         const params = this.params
 
-        for (var i = 1; i < match.length; i++) {
+        for (let i = 1; i < match.length; i++) {
             const key = this.keys[i - 1]
             const prop = key.name
             const val = decode_param(match[i])

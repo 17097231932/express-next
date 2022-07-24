@@ -112,51 +112,20 @@ function mergeParams(params, parent) {
 /**
  * restore obj props after function
  */
-function restore(fn, obj) {
-    const props = new Array(arguments.length - 2)
-    var vals = new Array(arguments.length - 2)
+function restore(fn, obj, ...args) {
+    const props = []
 
-    for (var i = 0; i < props.length; i++) {
-        props[i] = arguments[i + 2]
-        vals[i] = obj[props[i]]
+    for (const key of args) {
+        props.push([key, obj[key]])
     }
 
-    return function () {
+    return (...args) => {
         // restore vals
-        for (var i = 0; i < props.length; i++) {
-            obj[props[i]] = vals[i]
+        for (const [key, value] of props) {
+            obj[key] = value
         }
 
-        return fn.apply(this, arguments)
-    }
-}
-
-/**
- * send an OPTIONS response
- */
-function sendOptionsResponse(res, options, next) {
-    try {
-        const body = options.join(',')
-        res.set('Allow', body)
-        res.send(body)
-    } catch (err) {
-        next(err)
-    }
-}
-
-/**
- * wrap a function
- */
-function wrap(old, fn) {
-    return function proxy() {
-        var args = new Array(arguments.length + 1)
-
-        args[0] = old
-        for (var i = 0, len = arguments.length; i < len; i++) {
-            args[i + 1] = arguments[i]
-        }
-
-        fn.apply(this, args)
+        return fn.apply(this, args)
     }
 }
 
@@ -174,6 +143,8 @@ const proto = {
         this.caseSensitive = opts.caseSensitive
         this.mergeParams = opts.mergeParams
         this.strict = opts.strict
+
+        // middleware and routes
         this.stack = []
     },
 
@@ -252,45 +223,43 @@ const proto = {
      * Dispatch a req, res into the router.
      */
     handle(req, res, out) {
-        const self = this
-
         debug('dispatching %s %s', req.method, req.url)
 
         let idx = 0
-        var protohost = getProtohost(req.url) || ''
-        var removed = ''
-        var slashAdded = false
-        var sync = 0
-        var paramcalled = {}
+        const protohost = getProtohost(req.url) || ''
+        let removed = ''
+        let slashAdded = false
+        let sync = 0
+
+        // will change by trim_prefix
+        const paramcalled = {}
 
         // store options for OPTIONS request
         // only used if OPTIONS request
-        var options = []
-
-        // middleware and routes
-        var stack = this.stack
+        let options = []
 
         // manage inter-router variables
-        var parentParams = req.params
-        var parentUrl = req.baseUrl || ''
-        var done = restore(out, req, 'baseUrl', 'next', 'params')
+        const parentUrl = req.baseUrl || ''
 
-        // setup next layer
-        req.next = next
+        let done = restore(out, req, 'baseUrl', 'next', 'params')
 
         // for options requests, respond with a default if nothing else responds
         if (req.method === 'OPTIONS') {
-            done = wrap(done, function (old, err) {
-                if (err || options.length === 0) return old(err)
-                sendOptionsResponse(res, options, old)
-            })
+            const cb = done
+            done = err => {
+                if (err || options.length === 0) {
+                    return cb(err)
+                }
+
+                try {
+                    const body = options.join(',')
+                    res.set('Allow', body)
+                    res.send(body)
+                } catch (err) {
+                    cb(err)
+                }
+            }
         }
-
-        // setup basic req values
-        req.baseUrl = parentUrl
-        req.originalUrl = req.originalUrl || req.url
-
-        next()
 
         function trim_prefix(layer, layerError, layerPath, path) {
             if (layerPath.length !== 0) {
@@ -335,7 +304,8 @@ const proto = {
             }
         }
 
-        function next(err) {
+        // setup next layer
+        const next = err => {
             var layerError = err === 'route' ? null : err
 
             // remove added slash
@@ -358,7 +328,7 @@ const proto = {
             }
 
             // no more matching layers
-            if (idx >= stack.length) {
+            if (idx >= this.stack.length) {
                 setImmediate(done, layerError)
                 return
             }
@@ -380,8 +350,8 @@ const proto = {
             var match
             var route
 
-            while (match !== true && idx < stack.length) {
-                layer = stack[idx++]
+            while (match !== true && idx < this.stack.length) {
+                layer = this.stack[idx++]
                 match = matchLayer(layer, path)
                 route = layer.route
 
@@ -433,13 +403,13 @@ const proto = {
             }
 
             // Capture one-time layer values
-            req.params = self.mergeParams
-                ? mergeParams(layer.params, parentParams)
+            req.params = this.mergeParams
+                ? mergeParams(layer.params, req.params)
                 : layer.params
             var layerPath = layer.path
 
             // this should be done for the layer
-            self.process_params(layer, paramcalled, req, res, function (err) {
+            this.process_params(layer, paramcalled, req, res, err => {
                 if (err) {
                     next(layerError || err)
                 } else if (route) {
@@ -451,6 +421,12 @@ const proto = {
                 sync = 0
             })
         }
+
+        // setup basic req values
+        req.baseUrl = parentUrl
+        req.originalUrl = req.originalUrl || req.url
+
+        next()
     },
 
     /**

@@ -11,7 +11,7 @@ export const getLogger =
     namespace =>
     (...args) => {
         if (process.env.EXPRESS_DEBUG) {
-            console.log(format('[%s] %s', namespace, format(...args)))
+            console.debug(format('[%s] %s', namespace, format(...args)))
         }
     }
 
@@ -25,7 +25,7 @@ export const deprecate = msg => {
     ) {
         return
     }
-    console.warn(`express:deprecate:${msg}`)
+    console.warn(`[deprecate](express) ${msg}`)
 }
 
 export const methods = ['get', 'post', 'put', 'head', 'delete', 'options']
@@ -191,21 +191,17 @@ export const compileTrust = val => {
 
     if (val === true) {
         // Support plain true/false
-        return function () {
-            return true
-        }
+        return () => true
     }
 
     if (typeof val === 'number') {
         // Support trusting hop count
-        return function (_a, i) {
-            return i < val
-        }
+        return (_a, i) => i < val
     }
 
     if (typeof val === 'string') {
         // Support comma-separated values
-        val = val.split(',').map(function (v) {
+        val = val.split(',').map(v => {
             return v.trim()
         })
     }
@@ -234,4 +230,24 @@ export const setCharset = (type, charset) => {
 
     // format type
     return contentType.format(parsed)
+}
+
+export function encodeurl(url) {
+    // RegExp to match non-URL code points, *after* encoding (i.e. not including "%") and including invalid escape sequences.
+    const ENCODE_CHARS_REGEXP =
+        /(?:[^\x21\x25\x26-\x3B\x3D\x3F-\x5B\x5D\x5F\x61-\x7A\x7E]|%(?:[^0-9A-Fa-f]|[0-9A-Fa-f][^0-9A-Fa-f]|$))+/g
+
+    // RegExp to match unmatched surrogate pair.
+    const UNMATCHED_SURROGATE_PAIR_REGEXP =
+        /(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]|[\uD800-\uDBFF]([^\uDC00-\uDFFF]|$)/g
+
+    // String to replace unmatched surrogate pair with.
+    const UNMATCHED_SURROGATE_PAIR_REPLACE = '$1\uFFFD$2'
+
+    return url
+        .replace(
+            UNMATCHED_SURROGATE_PAIR_REGEXP,
+            UNMATCHED_SURROGATE_PAIR_REPLACE
+        )
+        .replace(ENCODE_CHARS_REGEXP, encodeURI)
 }

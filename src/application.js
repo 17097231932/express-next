@@ -4,6 +4,8 @@ import http from 'http'
 import { resolve } from 'path'
 import { init } from './middleware/init'
 import query from './middleware/query'
+import Request from './request'
+import Response from './response'
 import Router from './router'
 import {
     compileETag,
@@ -38,6 +40,9 @@ export default function createApplicationPrototype() {
         locals: {},
         mountpath: null,
         _router: null,
+
+        request: {},
+        response: {},
 
         /**
          * Initialize the server.
@@ -85,8 +90,6 @@ export default function createApplicationPrototype() {
                 }
 
                 // inherit protos
-                Object.setPrototypeOf(this.request, parent.request)
-                Object.setPrototypeOf(this.response, parent.response)
                 Object.setPrototypeOf(this.engines, parent.engines)
                 Object.setPrototypeOf(this.settings, parent.settings)
             })
@@ -270,7 +273,7 @@ export default function createApplicationPrototype() {
          *
          */
         handle(req, res, callback) {
-            const router = this._router
+            const router = this.getRouter()
 
             // final handler
             if (!callback) {
@@ -293,7 +296,34 @@ export default function createApplicationPrototype() {
                 return
             }
 
-            return router.handle(req, res, callback)
+            if (req instanceof Request && res instanceof Response) {
+                let origApp = req.app
+
+                req.app = this
+                res.app = this
+
+                router.handle(req, res, callback)
+
+                req.app = origApp
+                res.app = origApp
+            } else {
+                req = Request.fromIncomingMessage(req, this)
+
+                for (const [key, value] of Object.entries(this.request)) {
+                    Reflect.set(req, key, value)
+                }
+
+                res = Response.fromServerResponse(res, this)
+
+                for (const [key, value] of Object.entries(this.response)) {
+                    Reflect.set(res, key, value)
+                }
+
+                req.res = res
+                res.req = req
+
+                return router.handle(req, res, callback)
+            }
         },
 
         /**
@@ -346,12 +376,7 @@ export default function createApplicationPrototype() {
 
                     // restore .app property on req and res
                     router.use(path, (req, res, next) => {
-                        const orig = req.app
-                        middleware.handle(req, res, err => {
-                            Object.setPrototypeOf(req, orig.request)
-                            Object.setPrototypeOf(res, orig.response)
-                            next(err)
-                        })
+                        middleware.handle(req, res, next)
                     })
 
                     // mounted an app

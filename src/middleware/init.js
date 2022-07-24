@@ -10,15 +10,10 @@
 export function init(app) {
     return function expressInit(req, res, next) {
         if (app.enabled('x-powered-by')) {
-            res.setHeader('X-Powered-By', 'Express')
+            res.set('X-Powered-By', 'Express')
         }
 
-        req.res = res
-        res.req = req
-        req.next = next
-
-        Object.setPrototypeOf(req, app.request)
-        Object.setPrototypeOf(res, app.response)
+        res.next = next
 
         res.locals = res.locals || {}
 
